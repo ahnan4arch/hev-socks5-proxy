@@ -64,7 +64,7 @@ hev_socks5_server_new (HevEventLoop *loop, const char *addr, unsigned short port
 
 		/* event source fds for listener */
 		self->listener_source = hev_event_source_fds_new ();
-		hev_event_source_set_priority (self->listener_source, 2);
+		hev_event_source_set_priority (self->listener_source, 1);
 		hev_event_source_add_fd (self->listener_source, self->listen_fd, EPOLLIN | EPOLLET);
 		hev_event_source_set_callback (self->listener_source,
 					(HevEventSourceFunc) listener_source_handler, self, NULL);
@@ -73,7 +73,7 @@ hev_socks5_server_new (HevEventLoop *loop, const char *addr, unsigned short port
 
 		/* event source timeout */
 		self->timeout_source = hev_event_source_timeout_new (10 * 1000);
-		hev_event_source_set_priority (self->timeout_source, -11);
+		hev_event_source_set_priority (self->timeout_source, -1);
 		hev_event_source_set_callback (self->timeout_source, timeout_source_handler, self, NULL);
 		hev_event_loop_add_source (loop, self->timeout_source);
 		hev_event_source_unref (self->timeout_source);
