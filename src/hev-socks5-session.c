@@ -110,7 +110,8 @@ hev_socks5_session_get_source (HevSocks5Session *self)
 			hev_event_source_set_callback (self->source,
 						(HevEventSourceFunc) session_source_socks5_handler, self, NULL);
 			ioctl (self->cfd, FIONBIO, (char *) &nonblock);
-			self->client_fd = hev_event_source_add_fd (self->source, self->cfd, EPOLLIN | EPOLLOUT | EPOLLET);
+			self->client_fd = hev_event_source_add_fd (self->source, self->cfd,
+						EPOLLIN | EPOLLOUT | EPOLLET);
 		}
 		return self->source;
 	}
@@ -187,13 +188,114 @@ write_data (int fd, HevRingBuffer *buffer)
 }
 
 static bool
+client_read (HevSocks5Session *self)
+{
+	ssize_t size = read_data (self->client_fd->fd, self->forward_buffer);
+	if (-2 < size) {
+		if (-1 == size) {
+			if (EAGAIN == errno) {
+				self->revents &= ~CLIENT_IN;
+				self->client_fd->revents &= ~EPOLLIN;
+			} else {
+				return false;
+			}
+		} else if (0 == size) {
+			return false;
+		}
+	} else {
+		self->client_fd->revents &= ~EPOLLIN;
+	}
+
+	return true;
+}
+
+static bool
+client_write (HevSocks5Session *self)
+{
+	ssize_t size = write_data (self->client_fd->fd, self->backward_buffer);
+	if (-2 < size) {
+		if (-1 == size) {
+			if (EAGAIN == errno) {
+				self->revents &= ~CLIENT_OUT;
+				self->client_fd->revents &= ~EPOLLOUT;
+			} else {
+				return false;
+			}
+		}
+	} else {
+		self->client_fd->revents &= ~EPOLLOUT;
+	}
+
+	return true;
+}
+
+static bool
+remote_read (HevSocks5Session *self)
+{
+	ssize_t size = read_data (self->remote_fd->fd, self->backward_buffer);
+	if (-2 < size) {
+		if (-1 == size) {
+			if (EAGAIN == errno) {
+				self->revents &= ~REMOTE_IN;
+				self->remote_fd->revents &= ~EPOLLIN;
+			} else {
+				return false;
+			}
+		} else if (0 == size) {
+			return false;
+		}
+	} else {
+		self->remote_fd->revents &= ~EPOLLIN;
+	}
+
+	return true;
+}
+
+static bool
+remote_write (HevSocks5Session *self)
+{
+	ssize_t size = write_data (self->remote_fd->fd, self->forward_buffer);
+	if (-2 < size) {
+		if (-1 == size) {
+			if (EAGAIN == errno) {
+				self->revents &= ~REMOTE_OUT;
+				self->remote_fd->revents &= ~EPOLLOUT;
+			} else {
+				return false;
+			}
+		}
+	} else {
+		self->remote_fd->revents &= ~EPOLLOUT;
+	}
+
+	return true;
+}
+
+static bool
 session_source_socks5_handler (HevEventSourceFD *fd, void *data)
 {
 	HevSocks5Session *self = data;
-	ssize_t size = 0;
 
 	if ((EPOLLERR | EPOLLHUP) & fd->revents)
 	  goto close_session;
+
+	if (fd == self->client_fd) {
+		if (EPOLLIN & fd->revents)
+		  self->revents |= CLIENT_IN;
+		if (EPOLLOUT & fd->revents)
+		  self->revents |= CLIENT_OUT;
+	}
+
+	if (CLIENT_OUT & self->revents) {
+		if (!client_write (self))
+		  goto close_session;
+	}
+	if (CLIENT_IN & self->revents) {
+		if (!client_read (self))
+		  goto close_session;
+	}
+	
+	// TODO:
 
 	return true;
 
@@ -208,7 +310,6 @@ static bool
 session_source_splice_handler (HevEventSourceFD *fd, void *data)
 {
 	HevSocks5Session *self = data;
-	ssize_t size = 0;
 
 	if ((EPOLLERR | EPOLLHUP) & fd->revents)
 	  goto close_session;
@@ -226,71 +327,20 @@ session_source_splice_handler (HevEventSourceFD *fd, void *data)
 	}
 
 	if (CLIENT_OUT & self->revents) {
-		size = write_data (self->client_fd->fd, self->backward_buffer);
-		if (-2 < size) {
-			if (-1 == size) {
-				if (EAGAIN == errno) {
-					self->revents &= ~CLIENT_OUT;
-					self->client_fd->revents &= ~EPOLLOUT;
-				} else {
-					goto close_session;
-				}
-			}
-		} else {
-			self->client_fd->revents &= ~EPOLLOUT;
-		}
+		if (!client_write (self))
+		  goto close_session;
 	}
-
 	if (REMOTE_OUT & self->revents) {
-		size = write_data (self->remote_fd->fd, self->forward_buffer);
-		if (-2 < size) {
-			if (-1 == size) {
-				if (EAGAIN == errno) {
-					self->revents &= ~REMOTE_OUT;
-					self->remote_fd->revents &= ~EPOLLOUT;
-				} else {
-					goto close_session;
-				}
-			}
-		} else {
-			self->remote_fd->revents &= ~EPOLLOUT;
-		}
+		if (!remote_write (self))
+		  goto close_session;
 	}
-
 	if (CLIENT_IN & self->revents) {
-		size = read_data (self->client_fd->fd, self->forward_buffer);
-		if (-2 < size) {
-			if (-1 == size) {
-				if (EAGAIN == errno) {
-					self->revents &= ~CLIENT_IN;
-					self->client_fd->revents &= ~EPOLLIN;
-				} else {
-					goto close_session;
-				}
-			} else if (0 == size) {
-				goto close_session;
-			}
-		} else {
-			self->client_fd->revents &= ~EPOLLIN;
-		}
+		if (!client_read (self))
+		  goto close_session;
 	}
-
 	if (REMOTE_IN & self->revents) {
-		size = read_data (self->remote_fd->fd, self->backward_buffer);
-		if (-2 < size) {
-			if (-1 == size) {
-				if (EAGAIN == errno) {
-					self->revents &= ~REMOTE_IN;
-					self->remote_fd->revents &= ~EPOLLIN;
-				} else {
-					goto close_session;
-				}
-			} else if (0 == size) {
-				goto close_session;
-			}
-		} else {
-			self->remote_fd->revents &= ~EPOLLIN;
-		}
+		if (!remote_read (self))
+		  goto close_session;
 	}
 
 	self->idle = false;
