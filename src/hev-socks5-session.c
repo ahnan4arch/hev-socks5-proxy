@@ -58,6 +58,7 @@ hev_socks5_session_new (int client_fd, HevSocks5SessionCloseNotify notify, void 
 		self->ref_count = 1;
 		self->cfd = client_fd;
 		self->rfd = -1;
+		self->revents = 0;
 		self->idle = false;
 		self->client_fd = NULL;
 		self->remote_fd = NULL;
