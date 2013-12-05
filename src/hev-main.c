@@ -13,12 +13,6 @@
 #include "hev-socks5-server.h"
 
 static bool
-signal_pipe_handler (void *data)
-{
-	return true;
-}
-
-static bool
 signal_handler (void *data)
 {
 	HevEventLoop *loop = data;
@@ -35,14 +29,11 @@ main (int argc, char *argv[])
 
 	loop = hev_event_loop_new ();
 
+	signal (SIGPIPE, SIG_IGN);
+
 	source = hev_event_source_signal_new (SIGINT);
 	hev_event_source_set_priority (source, 3);
 	hev_event_source_set_callback (source, signal_handler, loop, NULL);
-	hev_event_loop_add_source (loop, source);
-	hev_event_source_unref (source);
-
-	source = hev_event_source_signal_new (SIGPIPE);
-	hev_event_source_set_callback (source, signal_pipe_handler, NULL, NULL);
 	hev_event_loop_add_source (loop, source);
 	hev_event_source_unref (source);
 
