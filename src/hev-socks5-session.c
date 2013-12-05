@@ -575,13 +575,9 @@ socks5_write_response (HevSocks5Session *self)
 static inline bool
 socks5_do_splice (HevSocks5Session *self)
 {
-	struct iovec iovec[2];
-	size_t iovec_len = 0, size = 0;
-
-	/* clear forward buffer */
-	iovec_len = hev_ring_buffer_reading (self->forward_buffer, iovec);
-	size = iovec_size (iovec, iovec_len);
-	hev_ring_buffer_read_finish (self->forward_buffer, size);
+	/* clear ring buffers */
+	hev_ring_buffer_reset (self->forward_buffer);
+	hev_ring_buffer_reset (self->backward_buffer);
 	/* switch to splice source handler */
 	hev_event_source_set_callback (self->source,
 				(HevEventSourceFunc) session_source_splice_handler, self, NULL);
