@@ -698,6 +698,8 @@ session_source_socks5_handler (HevEventSourceFD *fd, void *data)
 		  goto close_session;
 	} while (0 == wait);
 
+	self->idle = false;
+
 	return true;
 
 close_session:
