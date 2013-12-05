@@ -19,9 +19,13 @@
 #include <arpa/inet.h>
 
 #include "hev-socks5-session.h"
+#include "hev-dns-resolver.h"
+
+#define DNS_SERVER	"8.8.8.8"
 
 enum
 {
+	DNSRSV_IN = (1 << 4),
 	CLIENT_IN = (1 << 3),
 	CLIENT_OUT = (1 << 2),
 	REMOTE_IN = (1 << 1),
@@ -37,6 +41,7 @@ enum
 	STEP_DO_CONNECT,
 	STEP_PARSE_ADDR_IPV4,
 	STEP_PARSE_ADDR_DOMAIN,
+	STEP_WAIT_DNS_RESOLV,
 	STEP_DO_SOCKET_CONNECT,
 	STEP_WAIT_SOCKET_CONNECT,
 	STEP_WRITE_RESPONSE,
@@ -49,6 +54,7 @@ struct _HevSocks5Session
 {
 	int cfd;
 	int rfd;
+	int dfd;
 	unsigned int ref_count;
 	unsigned int step;
 	bool idle;
@@ -77,6 +83,7 @@ hev_socks5_session_new (int client_fd, HevSocks5SessionCloseNotify notify, void 
 		self->ref_count = 1;
 		self->cfd = client_fd;
 		self->rfd = -1;
+		self->dfd = -1;
 		self->revents = 0;
 		self->idle = false;
 		self->client_fd = NULL;
@@ -461,12 +468,39 @@ socks5_parse_addr_domain (HevSocks5Session *self)
 	self->addr.sin_family = AF_INET;
 	memcpy (&self->addr.sin_port, &data[data[0]+1], 2);
 	data[data[0]+1] = 0x00;
-	struct hostent *hostent = gethostbyname ((const char *) &data[1]);
-	if (!hostent || (AF_INET != hostent->h_addrtype)) {
+	/* checking is ipv4 addr */
+	self->addr.sin_addr.s_addr = inet_addr ((const char *) &data[1]);
+	if (INADDR_NONE != self->addr.sin_addr.s_addr) {
+		self->step = STEP_DO_SOCKET_CONNECT;
+		return false;
+	}
+	/* dns resolv */
+	if (-1 == self->dfd) {
+		self->dfd = hev_dns_resolver_new ();
+		hev_event_source_add_fd (self->source, self->dfd, EPOLLIN | EPOLLET);
+	}
+	if (!hev_dns_resolver_query (self->dfd, DNS_SERVER, (const char *) &data[1])) {
 		self->step = STEP_CLOSE_SESSION;
 		return false;
 	}
-	memcpy (&self->addr.sin_addr, hostent->h_addr, 4);
+	self->step = STEP_WAIT_DNS_RESOLV;
+	return true;
+}
+
+static inline bool
+socks5_wait_dns_resolv (HevSocks5Session *self)
+{
+	unsigned int addr;
+
+	printf ("-- wait dns resolv --\n");
+	if (!(DNSRSV_IN & self->revents))
+	  return true;
+	addr = hev_dns_resolver_query_finish (self->dfd);
+	memcpy (&self->addr.sin_addr, &addr, 4);
+	/* close dns resolver */
+	hev_event_source_del_fd (self->source, self->dfd);
+	close (self->dfd);
+	self->dfd = -1;
 	self->step = STEP_DO_SOCKET_CONNECT;
 
 	return false;
@@ -613,6 +647,9 @@ handle_socks5 (HevSocks5Session *self)
 	case STEP_PARSE_ADDR_DOMAIN:
 		wait = socks5_parse_addr_domain (self);
 		break;
+	case STEP_WAIT_DNS_RESOLV:
+		wait = socks5_wait_dns_resolv (self);
+		break;
 	case STEP_DO_SOCKET_CONNECT:
 		wait = socks5_do_socket_connect (self);
 		break;
@@ -651,11 +688,14 @@ session_source_socks5_handler (HevEventSourceFD *fd, void *data)
 		  self->revents |= CLIENT_IN;
 		if (EPOLLOUT & fd->revents)
 		  self->revents |= CLIENT_OUT;
-	} else {
+	} else if (fd == self->remote_fd) {
 		if (EPOLLIN & fd->revents)
 		  self->revents |= REMOTE_IN;
 		if (EPOLLOUT & fd->revents)
 		  self->revents |= REMOTE_OUT;
+	} else {
+		if (EPOLLIN & fd->revents)
+		  self->revents |= DNSRSV_IN;
 	}
 
 	do {
