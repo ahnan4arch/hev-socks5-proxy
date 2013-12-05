@@ -7,7 +7,6 @@
  ============================================================================
  */
 
-#include <stdio.h>
 #include <errno.h>
 #include <netdb.h>
 #include <string.h>
@@ -306,7 +305,6 @@ socks5_read_auth_method (HevSocks5Session *self)
 	size_t iovec_len = 0, size = 0;
 	uint8_t i = 0, *data = NULL;
 
-	printf ("-- read auth method --\n");
 	iovec_len = hev_ring_buffer_reading (self->forward_buffer, iovec);
 	size = iovec_size (iovec, iovec_len);
 	if (2 > size)
@@ -344,7 +342,6 @@ socks5_write_auth_method (HevSocks5Session *self)
 	struct iovec iovec[2];
 	size_t iovec_len = 0;
 
-	printf ("-- write auth method --\n");
 	iovec_len = hev_ring_buffer_reading (self->backward_buffer, iovec);
 	if (0 != iovec_len)
 	  return true;
@@ -364,7 +361,6 @@ socks5_read_request (HevSocks5Session *self)
 	size_t iovec_len = 0, size = 0;
 	uint8_t *data = NULL;
 
-	printf ("-- read request --\n");
 	iovec_len = hev_ring_buffer_reading (self->forward_buffer, iovec);
 	data = iovec[0].iov_base;
 	size = iovec_size (iovec, iovec_len);
@@ -397,7 +393,6 @@ socks5_read_request (HevSocks5Session *self)
 static inline bool
 socks5_do_connect (HevSocks5Session *self)
 {
-	printf ("-- do connect --\n");
 	switch (self->addr_type) {
 	case 0x01: /* ipv4 */
 		self->step = STEP_PARSE_ADDR_IPV4;
@@ -431,7 +426,6 @@ socks5_parse_addr_ipv4 (HevSocks5Session *self)
 	size_t iovec_len = 0, size = 0;
 	uint8_t *data = NULL;
 
-	printf ("-- parse ipv4 addr --\n");
 	iovec_len = hev_ring_buffer_reading (self->forward_buffer, iovec);
 	data = iovec[0].iov_base;
 	size = iovec_size (iovec, iovec_len);
@@ -454,7 +448,6 @@ socks5_parse_addr_domain (HevSocks5Session *self)
 	size_t iovec_len = 0, size = 0;
 	uint8_t *data = NULL;
 
-	printf ("-- parse domain --\n");
 	iovec_len = hev_ring_buffer_reading (self->forward_buffer, iovec);
 	data = iovec[0].iov_base;
 	size = iovec_size (iovec, iovec_len);
@@ -492,7 +485,6 @@ socks5_wait_dns_resolv (HevSocks5Session *self)
 {
 	unsigned int addr;
 
-	printf ("-- wait dns resolv --\n");
 	if (!(DNSRSV_IN & self->revents))
 	  return true;
 	addr = hev_dns_resolver_query_finish (self->dfd);
@@ -529,7 +521,6 @@ socks5_do_socket_connect (HevSocks5Session *self)
 {
 	int nonblock = 1;
 
-	printf ("-- do socket connect --\n");
 	self->rfd = socket (AF_INET, SOCK_STREAM, 0);
 	if (-1 == self->rfd) {
 		self->step = STEP_CLOSE_SESSION;
@@ -559,7 +550,6 @@ socks5_do_socket_connect (HevSocks5Session *self)
 static inline bool
 socks5_wait_socket_connect (HevSocks5Session *self)
 {
-	printf ("-- wait for connect --\n");
 	if (!(REMOTE_OUT & self->revents))
 	  return true;
 	socks5_write_response_addr (self);
@@ -574,7 +564,6 @@ socks5_write_response (HevSocks5Session *self)
 	struct iovec iovec[2];
 	size_t iovec_len = 0;
 
-	printf ("-- write response --\n");
 	iovec_len = hev_ring_buffer_reading (self->backward_buffer, iovec);
 	if (0 != iovec_len)
 	  return true;
@@ -589,7 +578,6 @@ socks5_do_splice (HevSocks5Session *self)
 	struct iovec iovec[2];
 	size_t iovec_len = 0, size = 0;
 
-	printf ("-- do splice --\n");
 	/* clear forward buffer */
 	iovec_len = hev_ring_buffer_reading (self->forward_buffer, iovec);
 	size = iovec_size (iovec, iovec_len);
@@ -606,7 +594,6 @@ socks5_write_response_error (HevSocks5Session *self)
 	struct iovec iovec[2];
 	size_t iovec_len = 0;
 
-	printf ("-- write response error --\n");
 	iovec_len = hev_ring_buffer_reading (self->backward_buffer, iovec);
 	if (0 != iovec_len)
 	  return true;
@@ -618,7 +605,6 @@ socks5_write_response_error (HevSocks5Session *self)
 static inline void
 socks5_close_session (HevSocks5Session *self)
 {
-	printf ("-- close session --\n");
 }
 
 static int
