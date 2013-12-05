@@ -46,7 +46,7 @@ main (int argc, char *argv[])
 	hev_event_loop_add_source (loop, source);
 	hev_event_source_unref (source);
 
-	server = hev_socks5_server_new (loop, "0.0.0.0", 1081);
+	server = hev_socks5_server_new (loop, "0.0.0.0", 1080);
 	if (server) {
 		hev_event_loop_run (loop);
 		hev_socks5_server_unref (server);
