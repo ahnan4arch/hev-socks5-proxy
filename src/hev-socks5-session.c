@@ -116,6 +116,8 @@ hev_socks5_session_unref (HevSocks5Session *self)
 			close (self->cfd);
 			if (-1 < self->rfd)
 			  close (self->rfd);
+			if (-1 < self->dfd)
+			  close (self->dfd);
 			hev_ring_buffer_unref (self->forward_buffer);
 			hev_ring_buffer_unref (self->backward_buffer);
 			if (self->source)
