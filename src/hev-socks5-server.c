@@ -133,8 +133,8 @@ listener_source_handler (HevEventSourceFD *fd, void *data)
 		session = hev_socks5_session_new (client_fd, session_close_handler, self);
 		source = hev_socks5_session_get_source (session);
 		hev_event_loop_add_source (self->loop, source);
-		printf ("New session %p (%d) enter from %s:%u\n", session,
-					client_fd, inet_ntoa (addr.sin_addr), ntohs (addr.sin_port));
+		/* printf ("New session %p (%d) enter from %s:%u\n", session,
+					client_fd, inet_ntoa (addr.sin_addr), ntohs (addr.sin_port)); */
 
 		self->session_list = hev_slist_append (self->session_list, session);
 	}
@@ -147,7 +147,7 @@ session_close_handler (HevSocks5Session *session, void *data)
 {
 	HevSocks5Server *self = data;
 
-	printf ("Remove session %p\n", session);
+	/* printf ("Remove session %p\n", session); */
 	hev_event_loop_del_source (self->loop,
 				hev_socks5_session_get_source (session));
 	hev_socks5_session_unref (session);
@@ -162,7 +162,7 @@ timeout_source_handler (void *data)
 	for (list=self->session_list; list; list=hev_slist_next (list)) {
 		HevSocks5Session *session = hev_slist_data (list);
 		if (hev_socks5_session_get_idle (session)) {
-			printf ("Remove timeout session %p\n", session);
+			/* printf ("Remove timeout session %p\n", session); */
 			hev_event_loop_del_source (self->loop,
 						hev_socks5_session_get_source (session));
 			hev_socks5_session_unref (session);
