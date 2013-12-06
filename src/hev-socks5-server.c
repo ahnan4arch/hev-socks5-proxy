@@ -20,6 +20,8 @@
 #include "hev-socks5-server.h"
 #include "hev-socks5-session.h"
 
+#define TIMEOUT		(30 * 1000)
+
 struct _HevSocks5Server
 {
 	int listen_fd;
@@ -72,7 +74,7 @@ hev_socks5_server_new (HevEventLoop *loop, const char *addr, unsigned short port
 		hev_event_source_unref (self->listener_source);
 
 		/* event source timeout */
-		self->timeout_source = hev_event_source_timeout_new (10 * 1000);
+		self->timeout_source = hev_event_source_timeout_new (TIMEOUT);
 		hev_event_source_set_priority (self->timeout_source, -1);
 		hev_event_source_set_callback (self->timeout_source, timeout_source_handler, self, NULL);
 		hev_event_loop_add_source (loop, self->timeout_source);
