@@ -438,6 +438,7 @@ socks5_parse_addr_ipv4 (HevSocks5Session *self)
 	self->addr.sin_family = AF_INET;
 	memcpy (&self->addr.sin_addr, &data[self->roffset], 4);
 	memcpy (&self->addr.sin_port, &data[self->roffset+4], 2);
+	self->roffset += 6;
 	self->step = STEP_DO_SOCKET_CONNECT;
 
 	return false;
@@ -455,14 +456,15 @@ socks5_parse_addr_domain (HevSocks5Session *self)
 	size = iovec_size (iovec, iovec_len);
 	if ((self->roffset + 1) > size)
 	  return true;
+	data += self->roffset;
 	if ((self->roffset + data[0] + 3) > size)
 	  return true;
-	data += self->roffset;
 	/* construct addr */
 	memset (&self->addr, 0, sizeof (self->addr));
 	self->addr.sin_family = AF_INET;
 	memcpy (&self->addr.sin_port, &data[data[0]+1], 2);
 	data[data[0]+1] = 0x00;
+	self->roffset += data[0] + 3;
 	/* checking is ipv4 addr */
 	self->addr.sin_addr.s_addr = inet_addr ((const char *) &data[1]);
 	if (INADDR_NONE != self->addr.sin_addr.s_addr) {
@@ -577,9 +579,8 @@ socks5_write_response (HevSocks5Session *self)
 static inline bool
 socks5_do_splice (HevSocks5Session *self)
 {
-	/* clear ring buffers */
-	hev_ring_buffer_reset (self->forward_buffer);
-	hev_ring_buffer_reset (self->backward_buffer);
+	/* clear socks5 request in forward buffer */
+	hev_ring_buffer_read_finish (self->forward_buffer, self->roffset);
 	/* switch to splice source handler */
 	hev_event_source_set_callback (self->source,
 				(HevEventSourceFunc) session_source_splice_handler, self, NULL);
