@@ -53,13 +53,13 @@ hev_dns_resolver_query (int resolver, const char *server, const char *domain)
 {
 	if (-1 < resolver) {
 		ssize_t i = 0;
-		uint8_t c = 0, buffer[1400];
+		uint8_t c = 0, buffer[2048];
 		HevDNSHeader *header = (HevDNSHeader *) buffer;
 		size_t size = strlen (domain);
 		struct sockaddr_in addr;
 
 		/* checking domain length */
-		if ((1400-sizeof (HevDNSHeader)-2-4) < size)
+		if ((2048-sizeof (HevDNSHeader)-2-4) < size)
 		  return false;
 		/* copy domain to queries aera */
 		for (i=size-1; 0<=i; i--) {
@@ -105,26 +105,26 @@ unsigned int
 hev_dns_resolver_query_finish (int resolver)
 {
 	if (-1 < resolver) {
-		uint8_t buffer[1400];
+		uint8_t buffer[2048];
 		HevDNSHeader *header = (HevDNSHeader *) buffer;
 		struct sockaddr_in addr;
 		socklen_t addr_len = sizeof (addr);
 		size_t i = 0, offset = sizeof (HevDNSHeader);
 		unsigned int *resp = NULL;
 
-		ssize_t s = recvfrom (resolver, buffer, 1400,
+		ssize_t size = recvfrom (resolver, buffer, 2048,
 					0, (struct sockaddr *) &addr, &addr_len);
 		if (53 != ntohs (addr.sin_port))
 		  return 0;
-		if (sizeof (HevDNSHeader) > s)
+		if (sizeof (HevDNSHeader) > size)
 		  return 0;
 		if (0 == header->ancount)
 		  return 0;
 		header->qdcount = ntohs (header->qdcount);
 		header->ancount = ntohs (header->ancount);
 		/* skip queries */
-		for (i=0; i<header->qdcount; i++) {
-			for (; offset <1400;) {
+		for (i=0; i<header->qdcount; i++, offset+=4) {
+			for (; offset<size;) {
 				if (0 == buffer[offset]) {
 					offset += 1;
 					break;
@@ -135,11 +135,10 @@ hev_dns_resolver_query_finish (int resolver)
 					offset += (buffer[offset] + 1);
 				}
 			}
-			offset += 4;
 		}
 		/* goto first a type answer resource area */
 		for (i=0; i<header->ancount; i++) {
-			for (; offset <1400;) {
+			for (; offset<size;) {
 				if (0 == buffer[offset]) {
 					offset += 1;
 					break;
@@ -151,13 +150,16 @@ hev_dns_resolver_query_finish (int resolver)
 				}
 			}
 			offset += 8;
+			/* checking the answer is valid */
+			if ((offset-7) >= size)
+			  return 0;
 			/* is a type */
 			if ((0x00 == buffer[offset-8]) && (0x01 == buffer[offset-7]))
 			  break;
 			offset += 2 + (buffer[offset+1] + (buffer[offset] << 8));
 		}
 		/* checking resource length */
-		if ((0x00 != buffer[offset]) || (0x04 != buffer[offset+1]))
+		if (((offset+5) >= size) || (0x00 != buffer[offset]) || (0x04 != buffer[offset+1]))
 		  return 0;
 		resp = (unsigned int *) &buffer[offset+2];
 
