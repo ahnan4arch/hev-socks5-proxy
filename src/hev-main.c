@@ -7,10 +7,17 @@
  ============================================================================
  */
 
+#include <stdio.h>
 #include <signal.h>
 
 #include "hev-main.h"
 #include "hev-socks5-server.h"
+
+static void
+show_help (const char *app)
+{
+	fprintf (stderr, "%s ADDR PORT\n", app);
+}
 
 static bool
 signal_handler (void *data)
@@ -27,6 +34,11 @@ main (int argc, char *argv[])
 	HevEventSource *source = NULL;
 	HevSocks5Server *server = NULL;
 
+	if (3 != argc) {
+		show_help (argv[0]);
+		exit (1);
+	}
+
 	loop = hev_event_loop_new ();
 
 	signal (SIGPIPE, SIG_IGN);
@@ -37,7 +49,7 @@ main (int argc, char *argv[])
 	hev_event_loop_add_source (loop, source);
 	hev_event_source_unref (source);
 
-	server = hev_socks5_server_new (loop, "0.0.0.0", 1080);
+	server = hev_socks5_server_new (loop, argv[1], atoi (argv[2]));
 	if (server) {
 		hev_event_loop_run (loop);
 		hev_socks5_server_unref (server);
