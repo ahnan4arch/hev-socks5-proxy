@@ -144,18 +144,6 @@ listener_source_handler (HevEventSourceFD *fd, void *data)
 	return true;
 }
 
-static void
-session_close_handler (HevSocks5Session *session, void *data)
-{
-	HevSocks5Server *self = data;
-
-	/* printf ("Remove session %p\n", session); */
-	hev_event_loop_del_source (self->loop,
-				hev_socks5_session_get_source (session));
-	hev_socks5_session_unref (session);
-	self->session_list = hev_slist_remove (self->session_list, session);
-}
-
 static bool
 timeout_source_handler (void *data)
 {
@@ -176,5 +164,17 @@ timeout_source_handler (void *data)
 	self->session_list = hev_slist_remove_all (self->session_list, NULL);
 
 	return true;
+}
+
+static void
+session_close_handler (HevSocks5Session *session, void *data)
+{
+	HevSocks5Server *self = data;
+
+	/* printf ("Remove session %p\n", session); */
+	hev_event_loop_del_source (self->loop,
+				hev_socks5_session_get_source (session));
+	hev_socks5_session_unref (session);
+	self->session_list = hev_slist_remove (self->session_list, session);
 }
 
