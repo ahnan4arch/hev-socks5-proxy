@@ -20,6 +20,11 @@ struct _HevSocks5Session
 	bool is_idle;
 
 	HevBufferList *buffer_list;
+
+	struct {
+		HevSocks5SessionCloseNotify notifer;
+		void *data;
+	} notify;
 };
 
 HevSocks5Session *
@@ -36,6 +41,8 @@ hev_socks5_session_new (int client_fd, HevBufferList *buffer_list,
 
 	self->is_idle = false;
 	self->buffer_list = buffer_list;
+	self->notify.notifer = notify;
+	self->notify.data = notify_data;
 
 	return self;
 }
@@ -43,6 +50,8 @@ hev_socks5_session_new (int client_fd, HevBufferList *buffer_list,
 void
 hev_socks5_session_destroy (HevSocks5Session *self)
 {
+	if (self->notify.notifer)
+	      self->notify.notifer (self, self->notify.data);
 	hev_free (self);
 }
 
