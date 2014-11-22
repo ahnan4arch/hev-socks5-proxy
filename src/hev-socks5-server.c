@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 
 #include "hev-main.h"
+#include "hev-buffer-list.h"
 #include "hev-socks5-server.h"
 #include "hev-socks5-session.h"
 
@@ -28,6 +29,7 @@ struct _HevSocks5Server
 	int listen_fd;
 
 	HevSList *session_list;
+	HevBufferList *buffer_list;
 	HevEventSource *timeout_source;
 	HevEventSource *listener_source;
 };
@@ -97,6 +99,15 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	hev_event_loop_add_source (main_loop, self->listener_source);
 	hev_event_source_unref (self->listener_source);
 
+	/* buffer list */
+	self->buffer_list = hev_buffer_list_new (2048, 4096);
+	if (!self->buffer_list) {
+		fprintf (stderr, "Create buffer list failed!\n");
+		close (self->listen_fd);
+		hev_free (self);
+		return NULL;
+	}
+
 	self->session_list = NULL;
 
 	return self;
@@ -112,6 +123,7 @@ hev_socks5_server_destroy (HevSocks5Server *self)
 		hev_socks5_session_destroy (session);
 	}
 	hev_slist_free (self->session_list);
+	hev_buffer_list_destroy (self->buffer_list);
 	hev_event_loop_del_source (main_loop, self->listener_source);
 	hev_event_loop_del_source (main_loop, self->timeout_source);
 	close (self->listen_fd);
@@ -165,7 +177,8 @@ listener_source_handler (HevEventSourceFD *fd, void *data)
 		return true;
 	}
 
-	session = hev_socks5_session_new (client_fd, session_close_handler, self);
+	session = hev_socks5_session_new (client_fd, self->buffer_list,
+				session_close_handler, self);
 	if (!session) {
 		fprintf (stderr, "Create socks5 session failed!\n");
 		close (client_fd);
