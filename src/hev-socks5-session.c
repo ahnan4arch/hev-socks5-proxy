@@ -18,11 +18,13 @@
 struct _HevSocks5Session
 {
 	bool is_idle;
+
+	HevBufferList *buffer_list;
 };
 
-
 HevSocks5Session *
-hev_socks5_session_new (int client_fd, HevSocks5SessionCloseNotify notify, void *notify_data)
+hev_socks5_session_new (int client_fd, HevBufferList *buffer_list,
+			HevSocks5SessionCloseNotify notify, void *notify_data)
 {
 	HevSocks5Session *self;
 
@@ -31,6 +33,9 @@ hev_socks5_session_new (int client_fd, HevSocks5SessionCloseNotify notify, void 
 		fprintf (stderr, "Malloc HevSocks5Session failed!\n");
 		return NULL;
 	}
+
+	self->is_idle = false;
+	self->buffer_list = buffer_list;
 
 	return self;
 }
