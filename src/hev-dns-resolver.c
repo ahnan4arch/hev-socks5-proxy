@@ -111,7 +111,7 @@ hev_dns_resolver_query_async (HevDNSResolver *self, const char *domain,
 	ssize_t size;
 	HevPollableFDWriter writer;
 
-	buffer = hev_buffer_list_alloc (self->buffer_list);
+	self->buffer = buffer = hev_buffer_list_alloc (self->buffer_list);
 	if (!buffer)
 	      return false;
 
@@ -261,6 +261,7 @@ pollable_fd_read_handler (HevPollableFD *fd, void *user_data)
 	}
 
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer = NULL;
 }
 
 static void
@@ -274,6 +275,7 @@ pollable_fd_write_handler (HevPollableFD *fd, void *user_data)
 	if (0 >= size) {
 		self->ip = 0;
 		hev_buffer_list_free (self->buffer_list, buffer);
+		self->buffer = NULL;
 		self->callback (self, self->user_data);
 	} else {
 		HevPollableFDReader reader;
@@ -284,6 +286,7 @@ pollable_fd_write_handler (HevPollableFD *fd, void *user_data)
 					pollable_fd_read_handler, self)) {
 			self->ip = 0;
 			hev_buffer_list_free (self->buffer_list, buffer);
+			self->buffer = NULL;
 			self->callback (self, self->user_data);
 		}
 	}
