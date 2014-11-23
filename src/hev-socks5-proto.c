@@ -172,7 +172,7 @@ hev_socks5_proto_req_unpack (void *buffer, uint16_t size, uint8_t *cmd,
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
-		return INT32_MIN;
+		return 0;
 	}
 
 	*port = ntohs (*pport);
@@ -248,7 +248,7 @@ hev_socks5_proto_res_unpack (void *buffer, uint16_t size, uint8_t *rep,
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
-		return INT32_MIN;
+		return 0;
 	}
 
 	*port = ntohs (*pport);
