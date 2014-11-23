@@ -69,9 +69,9 @@ hev_socks5_proto_auth_req_unpack (void *buffer, uint16_t size,
 	HevSocks5ProtoAuthReq *req = buffer;
 
 	if (2 > size)
-	      return -1;
+	      return 0 - (2 - size);
 	if ((2 + req->method_count) > size)
-	      return -2;
+	      return 0 - ((2 + req->method_count) - size);
 
 	*method_count = req->method_count;
 	*methods = req->methods;
@@ -97,7 +97,7 @@ hev_socks5_proto_auth_res_unpack (void *buffer, uint16_t size,
 	HevSocks5ProtoAuthRes *res = buffer;
 
 	if (sizeof (HevSocks5ProtoAuthRes) > size)
-	      return -1;
+	      return 0 - (sizeof (HevSocks5ProtoAuthRes) - size);
 
 	*method = res->method;
 
@@ -151,20 +151,20 @@ hev_socks5_proto_req_unpack (void *buffer, uint16_t size, uint8_t *cmd,
 	uint16_t *pport;
 
 	if (sizeof (HevSocks5ProtoReqHeader) > size)
-	      return -1;
+	      return 0 - (sizeof (HevSocks5ProtoReqHeader) - size);
 
 	*cmd = hdr->cmd;
 	*atype = hdr->atype;
 	switch (hdr->atype) {
 	case HEV_SOCKS5_PROTO_ATYPE_IPV4:
 		if ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) > size)
-		      return -2;
+		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) - size);
 		*addr = (char *) paddr;
 		pport = (uint16_t *) paddr + 4;
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 		if ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 2) > size)
-		      return -2;
+		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 2) - size);
 		paddr[domain_len[0] + 1] = '\0';
 		*addr = (char *) (paddr + 1);
 		pport = (uint16_t *) (paddr + 1 + *domain_len);
@@ -172,7 +172,7 @@ hev_socks5_proto_req_unpack (void *buffer, uint16_t size, uint8_t *cmd,
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
-		return -1;
+		return INT32_MIN;
 	}
 
 	*port = ntohs (*pport);
@@ -227,20 +227,20 @@ hev_socks5_proto_res_unpack (void *buffer, uint16_t size, uint8_t *rep,
 	uint16_t *pport;
 
 	if (sizeof (HevSocks5ProtoResHeader) > size)
-	      return -1;
+	      return 0 - (sizeof (HevSocks5ProtoResHeader) - size);
 
 	*rep = hdr->rep;
 	*atype = hdr->atype;
 	switch (hdr->atype) {
 	case HEV_SOCKS5_PROTO_ATYPE_IPV4:
 		if ((sizeof (HevSocks5ProtoResHeader) + 4 + 2) > size)
-		      return -2;
+		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) - size);
 		*addr = (char *) paddr;
 		pport = (uint16_t *) paddr + 4;
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 		if ((sizeof (HevSocks5ProtoResHeader) + *domain_len + 2) > size)
-		      return -2;
+		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 2) - size);
 		paddr[domain_len[0] + 1] = '\0';
 		*addr = (char *) (paddr + 1);
 		pport = (uint16_t *) (paddr + 1 + *domain_len);
@@ -248,7 +248,7 @@ hev_socks5_proto_res_unpack (void *buffer, uint16_t size, uint8_t *rep,
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
-		return -1;
+		return INT32_MIN;
 	}
 
 	*port = ntohs (*pport);
