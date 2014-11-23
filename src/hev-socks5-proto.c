@@ -120,7 +120,7 @@ hev_socks5_proto_req_pack (void *buffer, uint8_t cmd, uint8_t atype,
 	hdr->atype = atype;
 	switch (atype) {
 	case HEV_SOCKS5_PROTO_ATYPE_IPV4:
-		*ipv4 = inet_addr (addr);
+		*ipv4 = *(uint32_t *) addr;
 		pport = paddr + 4;
 		addr_len = 4;
 		break;
@@ -136,7 +136,7 @@ hev_socks5_proto_req_pack (void *buffer, uint8_t cmd, uint8_t atype,
 		return -1;
 	}
 
-	*pport = htons (port);
+	*pport = port;
 
 	return sizeof (HevSocks5ProtoReqHeader) + addr_len + 2;
 }
@@ -175,7 +175,7 @@ hev_socks5_proto_req_unpack (void *buffer, uint16_t size, uint8_t *cmd,
 		return 0;
 	}
 
-	*port = ntohs (*pport);
+	*port = *pport;
 
 	return 0;
 }
@@ -196,7 +196,7 @@ hev_socks5_proto_res_pack (void *buffer, uint8_t rep, uint8_t atype,
 	hdr->atype = atype;
 	switch (atype) {
 	case HEV_SOCKS5_PROTO_ATYPE_IPV4:
-		*ipv4 = inet_addr (addr);
+		*ipv4 = *(uint32_t *) addr;
 		pport = paddr + 4;
 		addr_len = 4;
 		break;
@@ -212,7 +212,7 @@ hev_socks5_proto_res_pack (void *buffer, uint8_t rep, uint8_t atype,
 		return -1;
 	}
 
-	*pport = htons (port);
+	*pport = port;
 
 	return sizeof (HevSocks5ProtoResHeader) + addr_len + 2;
 }
@@ -251,7 +251,7 @@ hev_socks5_proto_res_unpack (void *buffer, uint16_t size, uint8_t *rep,
 		return 0;
 	}
 
-	*port = ntohs (*pport);
+	*port = *pport;
 
 	return 0;
 }
