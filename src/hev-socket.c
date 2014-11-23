@@ -37,6 +37,12 @@ hev_socket_destroy (HevSocket *self)
 	hev_free (self);
 }
 
+int
+hev_socket_get_fd (HevSocket *self)
+{
+	return self->fd;
+}
+
 bool
 hev_socket_accept_async (HevSocket *self, struct sockaddr *addr,
 			socklen_t *addr_len, HevSocketReadyCallback callback,

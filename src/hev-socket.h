@@ -19,6 +19,8 @@ typedef void (*HevSocketReadyCallback) (HevSocket *self, void *user_data);
 HevSocket * hev_socket_new (int domain, int type, int protocol);
 void hev_socket_destroy (HevSocket *self);
 
+int hev_socket_get_fd (HevSocket *self);
+
 bool hev_socket_accept_async (HevSocket *self, struct sockaddr *addr,
 			socklen_t *addr_len, HevSocketReadyCallback callback,
 			void *user_data);
