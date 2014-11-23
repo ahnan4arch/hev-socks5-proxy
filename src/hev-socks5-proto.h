@@ -14,6 +14,7 @@
 
 typedef enum _HevSocks5ProtoMethods HevSocks5ProtoMethods;
 typedef enum _HevSocks5ProtoCommands HevSocks5ProtoCommands;
+typedef enum _HevSocks5ProtoReplies HevSocks5ProtoReplies;
 typedef enum _HevSocks5ProtoAddrTypes HevSocks5ProtoAddrTypes;
 
 enum _HevSocks5ProtoMethods
@@ -29,6 +30,18 @@ enum _HevSocks5ProtoCommands
 	HEV_SOCKS5_PROTO_CMD_CONNECT = 0x01,
 	HEV_SOCKS5_PROTO_CMD_BIND = 0x02,
 	HEV_SOCKS5_PROTO_CMD_UDP = 0x03,
+};
+
+enum _HevSocks5ProtoReplies
+{
+	HEV_SOCKS5_PROTO_REP_SUCC = 0x01,
+	HEV_SOCKS5_PROTO_REP_GENERAL_FAIL = 0x02,
+	HEV_SOCKS5_PROTO_REP_NETWORK_UNREACH = 0x03,
+	HEV_SOCKS5_PROTO_REP_HOST_UNREACH = 0x04,
+	HEV_SOCKS5_PROTO_REP_CONNECT_REFUSED = 0x05,
+	HEV_SOCKS5_PROTO_REP_TTL_EXPIRED = 0x06,
+	HEV_SOCKS5_PROTO_REP_CMD_NOT_SUPPORT = 0x07,
+	HEV_SOCKS5_PROTO_REP_ATYPE_NOT_SUPPORT = 0x08,
 };
 
 enum _HevSocks5ProtoAddrTypes
