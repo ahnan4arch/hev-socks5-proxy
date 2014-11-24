@@ -521,7 +521,6 @@ read_remote_data_handler (HevPollableFD *fd, void *user_data)
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer1 = NULL;
-	hev_socks5_session_destroy (self);
 }
 
 static void
@@ -555,7 +554,6 @@ write_client_data_handler (HevPollableFD *fd, void *user_data)
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer1 = NULL;
-	hev_socks5_session_destroy (self);
 }
 
 static void
