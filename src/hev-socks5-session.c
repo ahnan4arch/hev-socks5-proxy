@@ -59,6 +59,7 @@ static void read_req_handler (HevPollableFD *fd, void *user_data);
 static void resolver_handler (HevDNSResolver *resolver, void *user_data);
 static void socket_connect_handler (HevSocket *socket, void *user_data);
 static void write_res_handler (HevPollableFD *fd, void *user_data);
+static void write_reject_res_handler (HevPollableFD *fd, void *user_data);
 static void read_client_data_handler (HevPollableFD *fd, void *user_data);
 static void read_remote_data_handler (HevPollableFD *fd, void *user_data);
 static void write_client_data_handler (HevPollableFD *fd, void *user_data);
@@ -358,7 +359,7 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 							HEV_SOCKS5_PROTO_REP_ATYPE_NOT_SUPPORT,
 							atype, addr, port);
 				if (!hev_socks5_session_client_write (self, buffer,
-								write_res_handler))
+								write_reject_res_handler))
 				      goto error0;
 				break;
 			}
@@ -471,6 +472,19 @@ error1:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
 error2:
+	hev_socks5_session_destroy (self);
+}
+
+static void
+write_reject_res_handler (HevPollableFD *fd, void *user_data)
+{
+	HevSocks5Session *self = user_data;
+	HevBuffer *buffer;
+
+	hev_pollable_fd_write_finish (fd, (void **) &buffer);
+
+	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer0 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
