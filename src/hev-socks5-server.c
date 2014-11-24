@@ -23,6 +23,7 @@
 #include "hev-socks5-session.h"
 
 #define TIMEOUT		(30 * 1000)
+#define MAX_BUFFERS	(16384)
 
 struct _HevSocks5Server
 {
@@ -83,7 +84,7 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	hev_event_source_unref (self->timeout_source);
 
 	/* buffer list */
-	self->buffer_list = hev_buffer_list_new (sizeof (HevBuffer), 4096);
+	self->buffer_list = hev_buffer_list_new (sizeof (HevBuffer), MAX_BUFFERS);
 	if (!self->buffer_list) {
 		fprintf (stderr, "Create buffer list failed!\n");
 		hev_socket_destroy (self->socket);
