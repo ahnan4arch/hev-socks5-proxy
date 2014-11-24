@@ -9,9 +9,6 @@
 
 #include <unistd.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include "hev-socks5-proto.h"
 
@@ -117,6 +114,7 @@ hev_socks5_proto_req_pack (void *buffer, uint8_t cmd, uint8_t atype,
 
 	hdr->ver = 5;
 	hdr->cmd = cmd;
+	hdr->rsv = 0;
 	hdr->atype = atype;
 	switch (atype) {
 	case HEV_SOCKS5_PROTO_ATYPE_IPV4:
@@ -148,7 +146,6 @@ hev_socks5_proto_req_unpack (void *buffer, uint16_t size, uint8_t *cmd,
 	HevSocks5ProtoReqHeader *hdr = buffer;
 	uint8_t *paddr = buffer + sizeof (HevSocks5ProtoReqHeader);
 	uint8_t *domain_len = paddr;
-	uint16_t *pport;
 
 	if (sizeof (HevSocks5ProtoReqHeader) > size)
 	      return 0 - (sizeof (HevSocks5ProtoReqHeader) - size);
@@ -160,22 +157,20 @@ hev_socks5_proto_req_unpack (void *buffer, uint16_t size, uint8_t *cmd,
 		if ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) > size)
 		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) - size);
 		*addr = (char *) paddr;
-		pport = (uint16_t *) (paddr + 4);
+		*port = *(uint16_t *) (paddr + 4);
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
-		if ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 2) > size)
-		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 2) - size);
-		paddr[domain_len[0] + 1] = '\0';
+		if ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 3) > size)
+		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 3) - size);
 		*addr = (char *) (paddr + 1);
-		pport = (uint16_t *) (paddr + 1 + *domain_len);
+		*port = *(uint16_t *) (paddr + 1 + *domain_len);
+		paddr[domain_len[0] + 1] = '\0';
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
 		return 0;
 	}
-
-	*port = *pport;
 
 	return 0;
 }
@@ -193,6 +188,7 @@ hev_socks5_proto_res_pack (void *buffer, uint8_t rep, uint8_t atype,
 
 	hdr->ver = 5;
 	hdr->rep = rep;
+	hdr->rsv = 0;
 	hdr->atype = atype;
 	switch (atype) {
 	case HEV_SOCKS5_PROTO_ATYPE_IPV4:
@@ -224,7 +220,6 @@ hev_socks5_proto_res_unpack (void *buffer, uint16_t size, uint8_t *rep,
 	HevSocks5ProtoResHeader *hdr = buffer;
 	uint8_t *paddr = buffer + sizeof (HevSocks5ProtoResHeader);
 	uint8_t *domain_len = paddr;
-	uint16_t *pport;
 
 	if (sizeof (HevSocks5ProtoResHeader) > size)
 	      return 0 - (sizeof (HevSocks5ProtoResHeader) - size);
@@ -236,22 +231,20 @@ hev_socks5_proto_res_unpack (void *buffer, uint16_t size, uint8_t *rep,
 		if ((sizeof (HevSocks5ProtoResHeader) + 4 + 2) > size)
 		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) - size);
 		*addr = (char *) paddr;
-		pport = (uint16_t *) (paddr + 4);
+		*port = *(uint16_t *) (paddr + 4);
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
-		if ((sizeof (HevSocks5ProtoResHeader) + *domain_len + 2) > size)
-		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 2) - size);
-		paddr[domain_len[0] + 1] = '\0';
+		if ((sizeof (HevSocks5ProtoResHeader) + *domain_len + 3) > size)
+		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 3) - size);
 		*addr = (char *) (paddr + 1);
-		pport = (uint16_t *) (paddr + 1 + *domain_len);
+		*port = *(uint16_t *) (paddr + 1 + *domain_len);
+		paddr[domain_len[0] + 1] = '\0';
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
 		return 0;
 	}
-
-	*port = *pport;
 
 	return 0;
 }
