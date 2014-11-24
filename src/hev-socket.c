@@ -165,7 +165,7 @@ hev_socket_connect_async (HevSocket *self, const struct sockaddr *addr,
 	self->connect_ctx.callback = callback;
 	self->connect_ctx.user_data = user_data;
 	self->connect_ctx.res = connect (self->fd, addr, addr_len);
-	if (0 <= self->connect_ctx.res || (-1 == self->connect_ctx.res && EAGAIN != errno)) {
+	if (0 <= self->connect_ctx.res || (-1 == self->connect_ctx.res && EINPROGRESS != errno)) {
 		callback (self, user_data);
 		return true;
 	}
@@ -205,7 +205,7 @@ source_handler (HevEventSourceFD *fd, void *data)
 		self->connect_ctx.res = connect (self->fd, &self->connect_ctx.addr,
 					self->connect_ctx.addr_len);
 		if (0 <= self->connect_ctx.res ||
-				(-1 == self->connect_ctx.res && EAGAIN != errno)) {
+				(-1 == self->connect_ctx.res && EINPROGRESS != errno)) {
 			self->connect_ctx.callback (self, self->connect_ctx.user_data);
 		}
 	}
