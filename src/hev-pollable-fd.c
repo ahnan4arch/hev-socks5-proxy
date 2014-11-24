@@ -71,6 +71,7 @@ hev_pollable_fd_new (int fd, int priority)
 void
 hev_pollable_fd_destroy (HevPollableFD *self)
 {
+	hev_event_loop_del_source (main_loop, self->source);
 	hev_free (self);
 }
 
