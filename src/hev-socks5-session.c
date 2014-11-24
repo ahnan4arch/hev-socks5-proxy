@@ -22,6 +22,8 @@
 #include "hev-dns-resolver.h"
 #include "hev-socks5-session.h"
 
+#define DNS_SERVER	"8.8.8.8"
+
 struct _HevSocks5Session
 {
 	int client_fd;
@@ -343,7 +345,7 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 			case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 				hev_buffer_list_free (self->buffer_list, buffer);
 				self->buffer0 = NULL;
-				self->resolver = hev_dns_resolver_new ("8.8.8.8",
+				self->resolver = hev_dns_resolver_new (DNS_SERVER,
 							self->buffer_list);
 				if (!self->resolver)
 				      goto error1;
