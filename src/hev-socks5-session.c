@@ -263,8 +263,8 @@ read_auth_req_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer0 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer0 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
@@ -300,8 +300,8 @@ write_auth_res_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer0 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer0 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
@@ -336,8 +336,8 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 				self->addr.sin_addr.s_addr = *(uint32_t *) addr;
 				if (!hev_socks5_session_socket_connect (self))
 				      goto error;
-				self->buffer0 = NULL;
 				hev_buffer_list_free (self->buffer_list, buffer);
+				self->buffer0 = NULL;
 				break;
 			case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 				self->resolver = hev_dns_resolver_new ("8.8.8.8",
@@ -349,8 +349,8 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 								addr, resolver_handler,
 								self))
 				      goto error;
-				self->buffer0 = NULL;
 				hev_buffer_list_free (self->buffer_list, buffer);
+				self->buffer0 = NULL;
 				break;
 			default:
 				buffer->offset = 0;
@@ -367,8 +367,8 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer0 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer0 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
@@ -464,11 +464,11 @@ write_res_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error0:
-	self->buffer1 = NULL;
 	hev_buffer_list_free (self->buffer_list, self->buffer1);
+	self->buffer1 = NULL;
 error1:
-	self->buffer0 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer0 = NULL;
 error2:
 	hev_socks5_session_destroy (self);
 }
@@ -493,8 +493,8 @@ read_client_data_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer0 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer0 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
@@ -518,8 +518,8 @@ read_remote_data_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer1 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer1 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
@@ -552,8 +552,8 @@ write_client_data_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer1 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer1 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
@@ -586,8 +586,8 @@ write_remote_data_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer0 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
+	self->buffer0 = NULL;
 	hev_socks5_session_destroy (self);
 }
 
