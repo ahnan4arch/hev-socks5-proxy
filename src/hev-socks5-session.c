@@ -116,8 +116,6 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 void
 hev_socks5_session_destroy (HevSocks5Session *self)
 {
-	if (self->notify.notifer)
-	      self->notify.notifer (self, self->notify.data);
 	if (self->socket)
 	      hev_socket_destroy (self->socket);
 	if (self->resolver)
@@ -132,6 +130,8 @@ hev_socks5_session_destroy (HevSocks5Session *self)
 	if (-1 < self->remote_fd)
 	      close (self->remote_fd);
 	close (self->client_fd);
+	if (self->notify.notifer)
+	      self->notify.notifer (self, self->notify.data);
 	hev_free (self);
 }
 
