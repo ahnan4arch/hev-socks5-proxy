@@ -17,6 +17,7 @@
 
 #include "hev-main.h"
 #include "hev-socket.h"
+#include "hev-buffer.h"
 #include "hev-buffer-list.h"
 #include "hev-socks5-server.h"
 #include "hev-socks5-session.h"
@@ -82,7 +83,7 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	hev_event_source_unref (self->timeout_source);
 
 	/* buffer list */
-	self->buffer_list = hev_buffer_list_new (2048, 4096);
+	self->buffer_list = hev_buffer_list_new (sizeof (HevBuffer), 4096);
 	if (!self->buffer_list) {
 		fprintf (stderr, "Create buffer list failed!\n");
 		hev_socket_destroy (self->socket);
