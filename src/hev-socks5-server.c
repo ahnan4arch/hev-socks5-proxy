@@ -8,16 +8,15 @@
  */
 
 #include <stdio.h>
-#include <errno.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include "hev-main.h"
+#include "hev-socket.h"
 #include "hev-buffer-list.h"
 #include "hev-socks5-server.h"
 #include "hev-socks5-session.h"
@@ -26,23 +25,21 @@
 
 struct _HevSocks5Server
 {
-	int listen_fd;
-
+	HevSocket *socket;
 	HevSList *session_list;
 	HevBufferList *buffer_list;
 	HevEventSource *timeout_source;
-	HevEventSource *listener_source;
 };
 
 static bool timeout_source_handler (void *data);
-static bool listener_source_handler (HevEventSourceFD *fd, void *data);
+static void socket_handler (HevSocket *socket, void *user_data);
 
 HevSocks5Server *
 hev_socks5_server_new (const char *addr, unsigned short port)
 {
 	HevSocks5Server *self;
 	struct sockaddr_in iaddr;
-	int nonblock = 1, reuseaddr = 1;
+	int reuseaddr = 1;
 
 	self = hev_malloc0 (sizeof (HevSocks5Server));
 	if (!self) {
@@ -51,22 +48,16 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	}
 
 	/* listen socket */
-	self->listen_fd = socket (AF_INET, SOCK_STREAM, 0);
-	if (0 > self->listen_fd) {
+	self->socket = hev_socket_new (AF_INET, SOCK_STREAM, 0);
+	if (!self->socket) {
 		fprintf (stderr, "Open listen socket failed!\n");
 		hev_free (self);
 		return NULL;
 	}
-	if (0 > ioctl (self->listen_fd, FIONBIO, (char *) &nonblock)) {
-		fprintf (stderr, "Set listen socket nonblock failed!\n");
-		close (self->listen_fd);
-		hev_free (self);
-		return NULL;
-	}
-	if (0 > setsockopt (self->listen_fd, SOL_SOCKET, SO_REUSEADDR,
+	if (0 > hev_socket_set_opt (self->socket, SOL_SOCKET, SO_REUSEADDR,
 					&reuseaddr, sizeof (reuseaddr))) {
 		fprintf (stderr, "Set listen socket reuse address failed!\n");
-		close (self->listen_fd);
+		hev_socket_destroy (self->socket);
 		hev_free (self);
 		return NULL;
 	}
@@ -74,10 +65,10 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	iaddr.sin_family = AF_INET;
 	iaddr.sin_addr.s_addr = inet_addr (addr);
 	iaddr.sin_port = htons (port);
-	if ((0 > bind (self->listen_fd, (struct sockaddr *) &iaddr, sizeof (iaddr))) ||
-				(0 > listen (self->listen_fd, 100))) {
+	if ((0 > hev_socket_bind (self->socket, (struct sockaddr *) &iaddr, sizeof (iaddr))) ||
+				(0 > hev_socket_listen (self->socket, 100))) {
 		fprintf (stderr, "Bind or listen socket failed!\n");
-		close (self->listen_fd);
+		hev_socket_destroy (self->socket);
 		hev_free (self);
 		return NULL;
 	}
@@ -90,25 +81,18 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	hev_event_loop_add_source (main_loop, self->timeout_source);
 	hev_event_source_unref (self->timeout_source);
 
-	/* event source fds for listener */
-	self->listener_source = hev_event_source_fds_new ();
-	hev_event_source_set_priority (self->listener_source, 1);
-	hev_event_source_add_fd (self->listener_source, self->listen_fd, EPOLLIN | EPOLLET);
-	hev_event_source_set_callback (self->listener_source,
-				(HevEventSourceFunc) listener_source_handler, self, NULL);
-	hev_event_loop_add_source (main_loop, self->listener_source);
-	hev_event_source_unref (self->listener_source);
-
 	/* buffer list */
 	self->buffer_list = hev_buffer_list_new (2048, 4096);
 	if (!self->buffer_list) {
 		fprintf (stderr, "Create buffer list failed!\n");
-		close (self->listen_fd);
+		hev_socket_destroy (self->socket);
 		hev_free (self);
 		return NULL;
 	}
 
 	self->session_list = NULL;
+
+	hev_socket_accept_async (self->socket, NULL, NULL, socket_handler, self);
 
 	return self;
 }
@@ -125,9 +109,8 @@ hev_socks5_server_destroy (HevSocks5Server *self)
 	}
 	hev_slist_free (self->session_list);
 	hev_buffer_list_destroy (self->buffer_list);
-	hev_event_loop_del_source (main_loop, self->listener_source);
 	hev_event_loop_del_source (main_loop, self->timeout_source);
-	close (self->listen_fd);
+	hev_socket_destroy (self->socket);
 	hev_free (self);
 }
 
@@ -167,23 +150,16 @@ session_close_handler (HevSocks5Session *session, void *data)
 	}
 }
 
-static bool
-listener_source_handler (HevEventSourceFD *fd, void *data)
+static void
+socket_handler (HevSocket *socket, void *user_data)
 {
-	HevSocks5Server *self = data;
+	HevSocks5Server *self = user_data;
 	HevSocks5Session *session;
-	int client_fd;
-	struct sockaddr_in addr;
-	socklen_t addr_len = sizeof (addr);
 
-	client_fd = accept (fd->fd, (struct sockaddr *) &addr, (socklen_t *) &addr_len);
+	int client_fd = hev_socket_accept_finish (socket);
 	if (0 > client_fd) {
-		if (EAGAIN == errno)
-		  fd->revents &= ~EPOLLIN;
-		else
-		  fprintf (stderr, "Accept failed!\n");
-
-		return true;
+		fprintf (stderr, "Accept failed!\n");
+		return;
 	}
 
 	session = hev_socks5_session_new (client_fd, self->buffer_list,
@@ -191,10 +167,10 @@ listener_source_handler (HevEventSourceFD *fd, void *data)
 	if (!session) {
 		fprintf (stderr, "Create socks5 session failed!\n");
 		close (client_fd);
-		return true;
+		return;
 	}
 	self->session_list = hev_slist_append (self->session_list, session);
 
-	return true;
+	hev_socket_accept_async (self->socket, NULL, NULL, socket_handler, self);
 }
 
