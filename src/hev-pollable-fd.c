@@ -108,6 +108,7 @@ hev_pollable_fd_read_finish (HevPollableFD *self, void **buffer)
 	if (buffer)
 	      *buffer = self->read_ctx.buffer;
 	self->read_ctx.buffer = NULL;
+	self->read_ctx.callback = NULL;
 
 	return self->read_ctx.res_count;
 }
@@ -146,6 +147,7 @@ hev_pollable_fd_write_finish (HevPollableFD *self, void **buffer)
 	if (buffer)
 	      *buffer = self->write_ctx.buffer;
 	self->write_ctx.buffer = NULL;
+	self->write_ctx.callback = NULL;
 
 	return self->write_ctx.res_count;
 }
