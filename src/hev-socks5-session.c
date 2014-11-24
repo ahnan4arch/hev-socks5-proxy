@@ -129,6 +129,8 @@ hev_socks5_session_destroy (HevSocks5Session *self)
 	hev_pollable_fd_destroy (self->client_pfd);
 	if (self->remote_pfd)
 	      hev_pollable_fd_destroy (self->remote_pfd);
+	if (-1 < self->remote_fd)
+	      close (self->remote_fd);
 	close (self->client_fd);
 	hev_free (self);
 }
@@ -161,7 +163,6 @@ hev_socks5_session_socket_connect (HevSocks5Session *self)
 	self->socket = hev_socket_new (AF_INET, SOCK_STREAM, 0);
 	if (!self->socket)
 	      return false;
-	self->remote_fd = hev_socket_get_fd (self->socket);
 
 	if (!hev_socket_connect_async (self->socket, (struct sockaddr *) &self->addr,
 					sizeof (self->addr), socket_connect_handler, self))
@@ -401,6 +402,9 @@ socket_connect_handler (HevSocket *socket, void *user_data)
 	if (0 > hev_socket_connect_finish (socket))
 	      goto error;
 
+	self->remote_fd = dup (hev_socket_get_fd (self->socket));
+	hev_socket_destroy (self->socket);
+	self->socket = NULL;
 	self->remote_pfd = hev_pollable_fd_new (self->remote_fd, 1);
 	if (!self->remote_pfd)
 	      goto error;
