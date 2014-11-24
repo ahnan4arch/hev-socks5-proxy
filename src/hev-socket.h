@@ -20,6 +20,13 @@ HevSocket * hev_socket_new (int domain, int type, int protocol);
 void hev_socket_destroy (HevSocket *self);
 
 int hev_socket_get_fd (HevSocket *self);
+void hev_socket_set_priority (HevSocket *self, int priority);
+
+int hev_socket_bind (HevSocket *self, const struct sockaddr *addr,
+			socklen_t addr_len);
+int hev_socket_listen (HevSocket *self, int backlog);
+int hev_socket_set_opt (HevSocket *self, int level, int option_name,
+			const void *option_value, socklen_t option_len);
 
 bool hev_socket_accept_async (HevSocket *self, struct sockaddr *addr,
 			socklen_t *addr_len, HevSocketReadyCallback callback,
