@@ -163,7 +163,7 @@ hev_socks5_session_socket_connect (HevSocks5Session *self)
 	      return false;
 	self->remote_fd = hev_socket_get_fd (self->socket);
 
-	if (!hev_socket_connect_async (self->socket, (struct sockaddr *)&self->addr,
+	if (!hev_socket_connect_async (self->socket, (struct sockaddr *) &self->addr,
 					sizeof (self->addr), socket_connect_handler, self))
 	      return false;
 
@@ -236,9 +236,9 @@ read_auth_req_handler (HevPollableFD *fd, void *user_data)
 		uint8_t i, method_count, *methods;
 
 		left_size = hev_socks5_proto_auth_req_unpack (buffer->data,
-					size, &method_count, &methods);
+					buffer->offset + size, &method_count, &methods);
 		if (0 > left_size) {
-			buffer->offset = size;
+			buffer->offset += size;
 			buffer->length = 0 - left_size;
 			if (!hev_socks5_session_client_read (self, buffer,
 							read_auth_req_handler))
@@ -280,7 +280,7 @@ write_auth_res_handler (HevPollableFD *fd, void *user_data)
 		goto error;
 	} else {
 		if (0 < ((ssize_t) buffer->length - size)) {
-			buffer->offset = size;
+			buffer->offset += size;
 			buffer->length -= size;
 			if (!hev_socks5_session_client_write (self, buffer,
 							write_auth_res_handler))
@@ -322,9 +322,9 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 		uint16_t port;
 
 		left_size = hev_socks5_proto_req_unpack (buffer->data,
-					size, &cmd, &atype, &addr, &port);
+					buffer->offset + size, &cmd, &atype, &addr, &port);
 		if (0 > left_size) {
-			buffer->offset = size;
+			buffer->offset += size;
 			buffer->length = 0 - left_size;
 			if (!hev_socks5_session_client_read (self, buffer, read_req_handler))
 			      goto error;
@@ -436,7 +436,7 @@ write_res_handler (HevPollableFD *fd, void *user_data)
 		goto error1;
 	} else {
 		if (0 < ((ssize_t) buffer->length - size)) {
-			buffer->offset = size;
+			buffer->offset += size;
 			buffer->length -= size;
 			if (!hev_socks5_session_client_write (self, buffer, write_res_handler))
 			      goto error1;
@@ -532,7 +532,7 @@ write_client_data_handler (HevPollableFD *fd, void *user_data)
 		goto error;
 	} else {
 		if (0 < ((ssize_t) buffer->length - size)) {
-			buffer->offset = size;
+			buffer->offset += size;
 			buffer->length -= size;
 			if (!hev_socks5_session_client_write (self, buffer,
 							write_client_data_handler))
@@ -566,7 +566,7 @@ write_remote_data_handler (HevPollableFD *fd, void *user_data)
 		goto error;
 	} else {
 		if (0 < ((ssize_t) buffer->length - size)) {
-			buffer->offset = size;
+			buffer->offset += size;
 			buffer->length -= size;
 			if (!hev_socks5_session_remote_write (self, buffer,
 							write_remote_data_handler))
