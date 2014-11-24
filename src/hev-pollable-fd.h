@@ -10,7 +10,7 @@
 #ifndef __HEV_POLLABLE_FD_H__
 #define __HEV_POLLABLE_FD_H__
 
-#include <stdint.h>
+#include <stdbool.h>
 
 typedef struct _HevPollableFD HevPollableFD;
 typedef struct _HevPollableFDIO HevPollableFDReader;
