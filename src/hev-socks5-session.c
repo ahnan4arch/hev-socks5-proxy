@@ -332,14 +332,16 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 		} else {
 			switch (atype) {
 			case HEV_SOCKS5_PROTO_ATYPE_IPV4:
+				hev_buffer_list_free (self->buffer_list, buffer);
+				self->buffer0 = NULL;
 				self->addr.sin_port = port;
 				self->addr.sin_addr.s_addr = *(uint32_t *) addr;
 				if (!hev_socks5_session_socket_connect (self))
 				      goto error;
-				hev_buffer_list_free (self->buffer_list, buffer);
-				self->buffer0 = NULL;
 				break;
 			case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
+				hev_buffer_list_free (self->buffer_list, buffer);
+				self->buffer0 = NULL;
 				self->resolver = hev_dns_resolver_new ("8.8.8.8",
 							self->buffer_list);
 				if (!self->resolver)
@@ -349,8 +351,6 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 								addr, resolver_handler,
 								self))
 				      goto error;
-				hev_buffer_list_free (self->buffer_list, buffer);
-				self->buffer0 = NULL;
 				break;
 			default:
 				buffer->offset = 0;
