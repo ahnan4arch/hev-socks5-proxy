@@ -518,7 +518,7 @@ read_remote_data_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer0 = NULL;
+	self->buffer1 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
 	hev_socks5_session_destroy (self);
 }
@@ -552,7 +552,7 @@ write_client_data_handler (HevPollableFD *fd, void *user_data)
 
 	return;
 error:
-	self->buffer0 = NULL;
+	self->buffer1 = NULL;
 	hev_buffer_list_free (self->buffer_list, buffer);
 	hev_socks5_session_destroy (self);
 }
