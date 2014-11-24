@@ -315,7 +315,7 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 	self->is_idle = false;
 	size = hev_pollable_fd_read_finish (fd, (void **) &buffer);
 	if (0 >= size) {
-		goto error;
+		goto error0;
 	} else {
 		int left_size;
 		uint8_t cmd, atype;
@@ -328,7 +328,7 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 			buffer->offset += size;
 			buffer->length = 0 - left_size;
 			if (!hev_socks5_session_client_read (self, buffer, read_req_handler))
-			      goto error;
+			      goto error0;
 		} else {
 			switch (atype) {
 			case HEV_SOCKS5_PROTO_ATYPE_IPV4:
@@ -337,7 +337,7 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 				self->addr.sin_port = port;
 				self->addr.sin_addr.s_addr = *(uint32_t *) addr;
 				if (!hev_socks5_session_socket_connect (self))
-				      goto error;
+				      goto error1;
 				break;
 			case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 				hev_buffer_list_free (self->buffer_list, buffer);
@@ -345,12 +345,12 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 				self->resolver = hev_dns_resolver_new ("8.8.8.8",
 							self->buffer_list);
 				if (!self->resolver)
-				      goto error;
+				      goto error1;
 				self->addr.sin_port = port;
 				if (!hev_dns_resolver_query_async (self->resolver,
 								addr, resolver_handler,
 								self))
-				      goto error;
+				      goto error1;
 				break;
 			default:
 				buffer->offset = 0;
@@ -359,16 +359,17 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 							atype, addr, port);
 				if (!hev_socks5_session_client_write (self, buffer,
 								write_res_handler))
-				      goto error;
+				      goto error0;
 				break;
 			}
 		}
 	}
 
 	return;
-error:
+error0:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
+error1:
 	hev_socks5_session_destroy (self);
 }
 
