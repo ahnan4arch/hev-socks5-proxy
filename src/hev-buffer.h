@@ -12,7 +12,7 @@
 
 #include <stdint.h>
 
-#define HEV_BUFFER_DATA_SIZE	(2044)
+#define HEV_BUFFER_DATA_SIZE	(4096-4)
 
 typedef struct _HevBuffer HevBuffer;
 
