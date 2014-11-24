@@ -160,7 +160,7 @@ hev_socks5_proto_req_unpack (void *buffer, uint16_t size, uint8_t *cmd,
 		if ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) > size)
 		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) - size);
 		*addr = (char *) paddr;
-		pport = (uint16_t *) paddr + 4;
+		pport = (uint16_t *) (paddr + 4);
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 		if ((sizeof (HevSocks5ProtoReqHeader) + *domain_len + 2) > size)
@@ -236,7 +236,7 @@ hev_socks5_proto_res_unpack (void *buffer, uint16_t size, uint8_t *rep,
 		if ((sizeof (HevSocks5ProtoResHeader) + 4 + 2) > size)
 		      return 0 - ((sizeof (HevSocks5ProtoReqHeader) + 4 + 2) - size);
 		*addr = (char *) paddr;
-		pport = (uint16_t *) paddr + 4;
+		pport = (uint16_t *) (paddr + 4);
 		break;
 	case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 		if ((sizeof (HevSocks5ProtoResHeader) + *domain_len + 2) > size)
