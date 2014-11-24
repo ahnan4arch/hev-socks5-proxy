@@ -120,7 +120,8 @@ hev_socks5_server_destroy (HevSocks5Server *self)
 
 	for (slist=self->session_list; slist; slist=hev_slist_next (slist)) {
 		HevSocks5Session *session = hev_slist_data (slist);
-		hev_socks5_session_destroy (session);
+		if (session)
+		      hev_socks5_session_destroy (session);
 	}
 	hev_slist_free (self->session_list);
 	hev_buffer_list_destroy (self->buffer_list);
@@ -134,15 +135,17 @@ static bool
 timeout_source_handler (void *data)
 {
 	HevSocks5Server *self = data;
-	HevSList *slist = NULL;
+	HevSList *slist;
 
 	for (slist=self->session_list; slist; slist=hev_slist_next (slist)) {
 		HevSocks5Session *session = hev_slist_data (slist);
-		if (hev_socks5_session_get_idle (session)) {
-			hev_socks5_session_destroy (session);
-			hev_slist_set_data (slist, NULL);
-		} else {
-			hev_socks5_session_set_idle (session);
+		if (session) {
+			if (hev_socks5_session_get_idle (session)) {
+				hev_socks5_session_destroy (session);
+				hev_slist_set_data (slist, NULL);
+			} else {
+				hev_socks5_session_set_idle (session);
+			}
 		}
 	}
 	self->session_list = hev_slist_remove_all (self->session_list, NULL);
@@ -154,8 +157,14 @@ static void
 session_close_handler (HevSocks5Session *session, void *data)
 {
 	HevSocks5Server *self = data;
+	HevSList *slist;
 
-	self->session_list = hev_slist_remove (self->session_list, session);
+	for (slist=self->session_list; slist; slist=hev_slist_next (slist)) {
+		if (hev_slist_data (slist) == session) {
+			hev_slist_set_data (slist, NULL);
+			break;
+		}
+	}
 }
 
 static bool
