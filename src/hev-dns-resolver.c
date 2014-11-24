@@ -121,8 +121,14 @@ hev_dns_resolver_query_async (HevDNSResolver *self, const char *domain,
 
 	writer.func = pollable_fd_writer;
 	writer.user_data = self;
-	return hev_pollable_fd_write_async (self->pfd, &writer,
-				buffer, size, pollable_fd_write_handler, self);
+	if (!hev_pollable_fd_write_async (self->pfd, &writer,
+				buffer, size, pollable_fd_write_handler, self)) {
+		hev_buffer_list_free (self->buffer_list, buffer);
+		self->buffer = NULL;
+		return false;
+	}
+
+	return true;
 }
 
 uint32_t
