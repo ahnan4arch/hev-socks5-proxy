@@ -191,8 +191,10 @@ static bool
 source_handler (HevEventSourceFD *fd, void *data)
 {
 	HevSocket *self = data;
+	int revents = fd->revents;
 
-	if (EPOLLIN & fd->revents && self->accept_ctx.callback) {
+	fd->revents = 0;
+	if (EPOLLIN & revents && self->accept_ctx.callback) {
 		self->accept_ctx.res = accept (self->fd, self->accept_ctx.addr,
 					self->accept_ctx.addr_len);
 		if (0 <= self->accept_ctx.res ||
@@ -201,7 +203,7 @@ source_handler (HevEventSourceFD *fd, void *data)
 		}
 	}
 
-	if (EPOLLOUT & fd->revents && self->connect_ctx.callback) {
+	if (EPOLLOUT & revents && self->connect_ctx.callback) {
 		self->connect_ctx.res = connect (self->fd, &self->connect_ctx.addr,
 					self->connect_ctx.addr_len);
 		if (0 <= self->connect_ctx.res ||
@@ -209,8 +211,6 @@ source_handler (HevEventSourceFD *fd, void *data)
 			self->connect_ctx.callback (self, self->connect_ctx.user_data);
 		}
 	}
-
-	fd->revents = 0;
 
 	return true;
 }
