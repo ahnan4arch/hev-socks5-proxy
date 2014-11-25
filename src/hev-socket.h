@@ -17,7 +17,8 @@ typedef struct _HevSocket HevSocket;
 typedef void (*HevSocketReadyCallback) (HevSocket *self, void *user_data);
 
 HevSocket * hev_socket_new (int domain, int type, int protocol);
-void hev_socket_destroy (HevSocket *self);
+HevSocket * hev_socket_ref (HevSocket *self);
+void hev_socket_unref (HevSocket *self);
 
 int hev_socket_get_fd (HevSocket *self);
 void hev_socket_set_priority (HevSocket *self, int priority);

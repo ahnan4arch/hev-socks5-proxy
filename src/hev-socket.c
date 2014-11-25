@@ -22,6 +22,7 @@
 struct _HevSocket
 {
 	int fd;
+	unsigned int ref_count;
 
 	HevEventSource *source;
 
@@ -77,15 +78,28 @@ hev_socket_new (int domain, int type, int protocol)
 	hev_event_loop_add_source (main_loop, self->source);
 	hev_event_source_unref (self->source);
 
+	self->ref_count = 1;
+
+	return self;
+}
+
+HevSocket *
+hev_socket_ref (HevSocket *self)
+{
+	self->ref_count ++;
+
 	return self;
 }
 
 void
-hev_socket_destroy (HevSocket *self)
+hev_socket_unref (HevSocket *self)
 {
-	hev_event_loop_del_source (main_loop, self->source);
-	close (self->fd);
-	hev_free (self);
+	self->ref_count --;
+	if (0 == self->ref_count) {
+		hev_event_loop_del_source (main_loop, self->source);
+		close (self->fd);
+		hev_free (self);
+	}
 }
 
 int
@@ -193,6 +207,8 @@ source_handler (HevEventSourceFD *fd, void *data)
 	HevSocket *self = data;
 	int revents = fd->revents;
 
+	hev_socket_ref (self);
+
 	fd->revents = 0;
 	if (EPOLLIN & revents && self->accept_ctx.callback) {
 		self->accept_ctx.res = accept (self->fd, self->accept_ctx.addr,
@@ -211,6 +227,8 @@ source_handler (HevEventSourceFD *fd, void *data)
 			self->connect_ctx.callback (self, self->connect_ctx.user_data);
 		}
 	}
+
+	hev_socket_unref (self);
 
 	return true;
 }
