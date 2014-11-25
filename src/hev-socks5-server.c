@@ -169,9 +169,9 @@ socket_handler (HevSocket *socket, void *user_data)
 	if (!session) {
 		fprintf (stderr, "Create socks5 session failed!\n");
 		close (client_fd);
-		return;
+	} else {
+		self->session_list = hev_slist_append (self->session_list, session);
 	}
-	self->session_list = hev_slist_append (self->session_list, session);
 
 	hev_socket_accept_async (self->socket, NULL, NULL, socket_handler, self);
 }
