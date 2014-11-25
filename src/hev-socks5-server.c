@@ -59,7 +59,7 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	if (0 > hev_socket_set_opt (self->socket, SOL_SOCKET, SO_REUSEADDR,
 					&reuseaddr, sizeof (reuseaddr))) {
 		fprintf (stderr, "Set listen socket reuse address failed!\n");
-		hev_socket_destroy (self->socket);
+		hev_socket_unref (self->socket);
 		hev_free (self);
 		return NULL;
 	}
@@ -70,7 +70,7 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	if ((0 > hev_socket_bind (self->socket, (struct sockaddr *) &iaddr, sizeof (iaddr))) ||
 				(0 > hev_socket_listen (self->socket, 100))) {
 		fprintf (stderr, "Bind or listen socket failed!\n");
-		hev_socket_destroy (self->socket);
+		hev_socket_unref (self->socket);
 		hev_free (self);
 		return NULL;
 	}
@@ -87,7 +87,7 @@ hev_socks5_server_new (const char *addr, unsigned short port)
 	self->buffer_list = hev_buffer_list_new (sizeof (HevBuffer), MAX_BUFFERS);
 	if (!self->buffer_list) {
 		fprintf (stderr, "Create buffer list failed!\n");
-		hev_socket_destroy (self->socket);
+		hev_socket_unref (self->socket);
 		hev_free (self);
 		return NULL;
 	}
@@ -107,12 +107,12 @@ hev_socks5_server_destroy (HevSocks5Server *self)
 	for (slist=self->session_list; slist; slist=hev_slist_next (slist)) {
 		HevSocks5Session *session = hev_slist_data (slist);
 		if (session)
-		      hev_socks5_session_destroy (session);
+		      hev_socks5_session_unref (session);
 	}
 	hev_slist_free (self->session_list);
 	hev_buffer_list_destroy (self->buffer_list);
 	hev_event_loop_del_source (main_loop, self->timeout_source);
-	hev_socket_destroy (self->socket);
+	hev_socket_unref (self->socket);
 	hev_free (self);
 }
 
@@ -126,7 +126,7 @@ timeout_source_handler (void *data)
 		HevSocks5Session *session = hev_slist_data (slist);
 		if (session) {
 			if (hev_socks5_session_get_idle (session)) {
-				hev_socks5_session_destroy (session);
+				hev_socks5_session_unref (session);
 				hev_slist_set_data (slist, NULL);
 			} else {
 				hev_socks5_session_set_idle (session);
@@ -142,14 +142,9 @@ static void
 session_close_handler (HevSocks5Session *session, void *data)
 {
 	HevSocks5Server *self = data;
-	HevSList *slist;
 
-	for (slist=self->session_list; slist; slist=hev_slist_next (slist)) {
-		if (hev_slist_data (slist) == session) {
-			hev_slist_set_data (slist, NULL);
-			break;
-		}
-	}
+	hev_socks5_session_unref (session);
+	self->session_list = hev_slist_remove (self->session_list, session);
 }
 
 static void
