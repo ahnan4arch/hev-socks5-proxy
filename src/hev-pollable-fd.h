@@ -25,7 +25,8 @@ struct _HevPollableFDIO
 };
 
 HevPollableFD * hev_pollable_fd_new (int fd, int priority);
-void hev_pollable_fd_destroy (HevPollableFD *self);
+HevPollableFD * hev_pollable_fd_ref (HevPollableFD *self);
+void hev_pollable_fd_unref (HevPollableFD *self);
 
 bool hev_pollable_fd_read_async (HevPollableFD *self, HevPollableFDReader *reader,
 			void *buffer, size_t count, HevPollableFDReadyCallback callback,

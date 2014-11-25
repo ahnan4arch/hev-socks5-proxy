@@ -18,6 +18,7 @@
 struct _HevPollableFD
 {
 	int fd;
+	unsigned int ref_count;
 
 	HevEventSource *source;
 
@@ -56,6 +57,7 @@ hev_pollable_fd_new (int fd, int priority)
 	      return NULL;
 
 	self->fd = fd;
+	self->ref_count = 1;
 
 	self->source = hev_event_source_fds_new ();
 	hev_event_source_set_priority (self->source, priority);
@@ -68,11 +70,22 @@ hev_pollable_fd_new (int fd, int priority)
 	return self;
 }
 
-void
-hev_pollable_fd_destroy (HevPollableFD *self)
+HevPollableFD *
+hev_pollable_fd_ref (HevPollableFD *self)
 {
-	hev_event_loop_del_source (main_loop, self->source);
-	hev_free (self);
+	self->ref_count ++;
+
+	return self;
+}
+
+void
+hev_pollable_fd_unref (HevPollableFD *self)
+{
+	self->ref_count --;
+	if (0 == self->ref_count) {
+		hev_event_loop_del_source (main_loop, self->source);
+		hev_free (self);
+	}
 }
 
 bool
@@ -159,6 +172,8 @@ source_handler (HevEventSourceFD *fd, void *data)
 	HevPollableFD *self = data;
 	int revents = fd->revents;
 
+	hev_pollable_fd_ref (self);
+
 	fd->revents = 0;
 	if (EPOLLIN & revents && self->read_ctx.callback) {
 		self->read_ctx.res_count = self->read_ctx.reader.func (self->fd,
@@ -179,6 +194,8 @@ source_handler (HevEventSourceFD *fd, void *data)
 			self->write_ctx.callback (self, self->write_ctx.user_data);
 		}
 	}
+
+	hev_pollable_fd_unref (self);
 
 	return true;
 }
