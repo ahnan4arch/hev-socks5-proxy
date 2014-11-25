@@ -157,8 +157,10 @@ static bool
 source_handler (HevEventSourceFD *fd, void *data)
 {
 	HevPollableFD *self = data;
+	int revents = fd->revents;
 
-	if (EPOLLIN & fd->revents && self->read_ctx.callback) {
+	fd->revents = 0;
+	if (EPOLLIN & revents && self->read_ctx.callback) {
 		self->read_ctx.res_count = self->read_ctx.reader.func (self->fd,
 					self->read_ctx.buffer, self->read_ctx.count,
 					self->read_ctx.reader.user_data);
@@ -168,7 +170,7 @@ source_handler (HevEventSourceFD *fd, void *data)
 		}
 	}
 
-	if (EPOLLOUT & fd->revents && self->write_ctx.callback) {
+	if (EPOLLOUT & revents && self->write_ctx.callback) {
 		self->write_ctx.res_count = self->write_ctx.writer.func (self->fd,
 					self->write_ctx.buffer, self->write_ctx.count,
 					self->write_ctx.writer.user_data);
@@ -177,8 +179,6 @@ source_handler (HevEventSourceFD *fd, void *data)
 			self->write_ctx.callback (self, self->write_ctx.user_data);
 		}
 	}
-
-	fd->revents = 0;
 
 	return true;
 }
