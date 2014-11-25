@@ -345,15 +345,22 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 			case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
 				hev_buffer_list_free (self->buffer_list, buffer);
 				self->buffer0 = NULL;
-				self->resolver = hev_dns_resolver_new (DNS_SERVER,
-							self->buffer_list);
-				if (!self->resolver)
-				      goto error1;
 				self->addr.sin_port = port;
-				if (!hev_dns_resolver_query_async (self->resolver,
-								addr, resolver_handler,
-								self))
-				      goto error1;
+				self->addr.sin_addr.s_addr = inet_addr (addr);
+				/* Checking is IPv4 address */
+				if (INADDR_NONE == self->addr.sin_addr.s_addr) {
+					self->resolver = hev_dns_resolver_new (DNS_SERVER,
+								self->buffer_list);
+					if (!self->resolver)
+					      goto error1;
+					if (!hev_dns_resolver_query_async (self->resolver,
+									addr, resolver_handler,
+									self))
+					      goto error1;
+				} else {
+					if (!hev_socks5_session_socket_connect (self))
+					      goto error1;
+				}
 				break;
 			default:
 				buffer->offset = 0;
