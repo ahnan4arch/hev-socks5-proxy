@@ -161,20 +161,6 @@ hev_socks5_session_remote_read (HevSocks5Session *self, HevBuffer *buffer,
 }
 
 static bool
-hev_socks5_session_socket_connect (HevSocks5Session *self)
-{
-	self->socket = hev_socket_new (AF_INET, SOCK_STREAM, 0);
-	if (!self->socket)
-	      return false;
-
-	if (!hev_socket_connect_async (self->socket, (struct sockaddr *) &self->addr,
-					sizeof (self->addr), socket_connect_handler, self))
-	      return false;
-
-	return true;
-}
-
-static bool
 hev_socks5_session_client_write (HevSocks5Session *self, HevBuffer *buffer,
 			HevPollableFDReadyCallback callback)
 {
@@ -194,6 +180,20 @@ hev_socks5_session_remote_write (HevSocks5Session *self, HevBuffer *buffer,
 	writer.func = sock_writer;
 	return hev_pollable_fd_write_async (self->remote_pfd, &writer,
 				buffer, buffer->length, callback, self);
+}
+
+static bool
+hev_socks5_session_socket_connect (HevSocks5Session *self)
+{
+	self->socket = hev_socket_new (AF_INET, SOCK_STREAM, 0);
+	if (!self->socket)
+	      return false;
+
+	if (!hev_socket_connect_async (self->socket, (struct sockaddr *) &self->addr,
+					sizeof (self->addr), socket_connect_handler, self))
+	      return false;
+
+	return true;
 }
 
 static ssize_t
