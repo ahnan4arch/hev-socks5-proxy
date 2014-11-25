@@ -110,6 +110,10 @@ hev_dns_resolver_unref (HevDNSResolver *self)
 	if (0 == self->ref_count) {
 		if (self->buffer)
 		      hev_buffer_list_free (self->buffer_list, self->buffer);
+		if (self->callback) {
+			self->ip = 0;
+			self->callback (self, self->user_data);
+		}
 		hev_pollable_fd_unref (self->pfd);
 		close (self->fd);
 		hev_free (self);
