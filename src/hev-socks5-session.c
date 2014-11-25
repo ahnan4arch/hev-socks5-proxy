@@ -86,8 +86,6 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 	self->ref_count = 1;
 	self->is_idle = false;
 	self->buffer_list = buffer_list;
-	self->notify.notifer = notify;
-	self->notify.data = notify_data;
 
 	self->client_pfd = hev_pollable_fd_new (fd, 1);
 	if (!self->client_pfd) {
@@ -115,6 +113,9 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 	}
 
 	self->addr.sin_family = AF_INET;
+
+	self->notify.notifer = notify;
+	self->notify.data = notify_data;
 
 	return self;
 }
