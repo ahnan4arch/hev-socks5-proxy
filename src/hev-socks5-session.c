@@ -394,6 +394,9 @@ resolver_handler (HevDNSResolver *resolver, void *user_data)
 	if (0 == ip)
 	      goto error;
 
+	hev_dns_resolver_destroy (resolver);
+	self->resolver = NULL;
+
 	self->addr.sin_addr.s_addr = ip;
 	if (!hev_socks5_session_socket_connect (self))
 	      goto error;
