@@ -41,6 +41,7 @@ struct _HevDNSHeader
 struct _HevDNSResolver
 {
 	int fd;
+	unsigned int ref_count;
 	uint32_t ip;
 
 	void *buffer;
@@ -89,18 +90,30 @@ hev_dns_resolver_new (const char *server, HevBufferList *buffer_list)
 	self->raddr.sin_addr.s_addr = inet_addr (server);
 	self->raddr.sin_port = htons (53);
 	self->buffer_list = buffer_list;
+	self->ref_count = 1;
+
+	return self;
+}
+
+HevDNSResolver *
+hev_dns_resolver_ref (HevDNSResolver *self)
+{
+	self->ref_count ++;
 
 	return self;
 }
 
 void
-hev_dns_resolver_destroy (HevDNSResolver *self)
+hev_dns_resolver_unref (HevDNSResolver *self)
 {
-	if (self->buffer)
-	      hev_buffer_list_free (self->buffer_list, self->buffer);
-	hev_pollable_fd_destroy (self->pfd);
-	close (self->fd);
-	hev_free (self);
+	self->ref_count --;
+	if (0 == self->ref_count) {
+		if (self->buffer)
+		      hev_buffer_list_free (self->buffer_list, self->buffer);
+		hev_pollable_fd_unref (self->pfd);
+		close (self->fd);
+		hev_free (self);
+	}
 }
 
 bool
@@ -134,6 +147,8 @@ hev_dns_resolver_query_async (HevDNSResolver *self, const char *domain,
 uint32_t
 hev_dns_resolver_query_finish (HevDNSResolver *self)
 {
+	self->callback = NULL;
+
 	return self->ip;
 }
 
@@ -262,6 +277,8 @@ pollable_fd_read_handler (HevPollableFD *fd, void *user_data)
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer = NULL;
 
+	hev_dns_resolver_ref (self);
+
 	if (0 >= size) {
 		self->ip = 0;
 		self->callback (self, self->user_data);
@@ -269,6 +286,8 @@ pollable_fd_read_handler (HevPollableFD *fd, void *user_data)
 		self->ip = hev_dns_resolver_response_unpack (buffer, size);
 		self->callback (self, self->user_data);
 	}
+
+	hev_dns_resolver_unref (self);
 }
 
 static void
@@ -279,6 +298,9 @@ pollable_fd_write_handler (HevPollableFD *fd, void *user_data)
 	ssize_t size;
 
 	size = hev_pollable_fd_write_finish (self->pfd, &buffer);
+
+	hev_dns_resolver_ref (self);
+
 	if (0 >= size) {
 		self->ip = 0;
 		hev_buffer_list_free (self->buffer_list, buffer);
@@ -297,5 +319,7 @@ pollable_fd_write_handler (HevPollableFD *fd, void *user_data)
 			self->callback (self, self->user_data);
 		}
 	}
+
+	hev_dns_resolver_unref (self);
 }
 
