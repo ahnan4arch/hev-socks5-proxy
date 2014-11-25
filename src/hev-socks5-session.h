@@ -19,7 +19,8 @@ typedef void (*HevSocks5SessionCloseNotify) (HevSocks5Session *self, void *data)
 
 HevSocks5Session * hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 			HevSocks5SessionCloseNotify notify, void *notify_data);
-void hev_socks5_session_destroy (HevSocks5Session *self);
+HevSocks5Session * hev_socks5_session_ref (HevSocks5Session *self);
+void hev_socks5_session_unref (HevSocks5Session *self);
 
 void hev_socks5_session_set_idle (HevSocks5Session *self);
 bool hev_socks5_session_get_idle (HevSocks5Session *self);

@@ -28,6 +28,7 @@ struct _HevSocks5Session
 {
 	int client_fd;
 	int remote_fd;
+	unsigned int ref_count;
 	bool is_idle;
 
 	HevBuffer *buffer0;
@@ -46,6 +47,7 @@ struct _HevSocks5Session
 	struct sockaddr_in addr;
 };
 
+static void hev_socks5_session_close (HevSocks5Session *self);
 static bool hev_socks5_session_client_read (HevSocks5Session *self, HevBuffer *buffer,
 			HevPollableFDReadyCallback callback);
 static bool hev_socks5_session_remote_read (HevSocks5Session *self, HevBuffer *buffer,
@@ -81,6 +83,7 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 	}
 
 	self->client_fd = fd;
+	self->ref_count = 1;
 	self->is_idle = false;
 	self->buffer_list = buffer_list;
 	self->notify.notifer = notify;
@@ -96,7 +99,7 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 	self->buffer0 = hev_buffer_list_alloc (self->buffer_list);
 	if (!self->buffer0) {
 		fprintf (stderr, "Alloc buffer failed!\n");
-		hev_pollable_fd_destroy (self->client_pfd);
+		hev_pollable_fd_unref (self->client_pfd);
 		hev_free (self);
 		return NULL;
 	}
@@ -106,7 +109,7 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 	if (!hev_socks5_session_client_read (self, self->buffer0, read_auth_req_handler)) {
 		fprintf (stderr, "Read auth request failed!\n");
 		hev_buffer_list_free (self->buffer_list, self->buffer0);
-		hev_pollable_fd_destroy (self->client_pfd);
+		hev_pollable_fd_unref (self->client_pfd);
 		hev_free (self);
 		return NULL;
 	}
@@ -116,26 +119,42 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 	return self;
 }
 
-void
-hev_socks5_session_destroy (HevSocks5Session *self)
+HevSocks5Session *
+hev_socks5_session_ref (HevSocks5Session *self)
 {
-	if (self->socket)
-	      hev_socket_destroy (self->socket);
-	if (self->resolver)
-	      hev_dns_resolver_destroy (self->resolver);
-	if (self->buffer0)
-	      hev_buffer_list_free (self->buffer_list, self->buffer0);
-	if (self->buffer1)
-	      hev_buffer_list_free (self->buffer_list, self->buffer1);
-	hev_pollable_fd_destroy (self->client_pfd);
-	if (self->remote_pfd)
-	      hev_pollable_fd_destroy (self->remote_pfd);
-	if (-1 < self->remote_fd)
-	      close (self->remote_fd);
-	close (self->client_fd);
+	self->ref_count ++;
+
+	return self;
+}
+
+void
+hev_socks5_session_unref (HevSocks5Session *self)
+{
+	self->ref_count --;
+	if (0 == self->ref_count) {
+		if (self->socket)
+		      hev_socket_unref (self->socket);
+		if (self->resolver)
+		      hev_dns_resolver_unref (self->resolver);
+		if (self->buffer0)
+		      hev_buffer_list_free (self->buffer_list, self->buffer0);
+		if (self->buffer1)
+		      hev_buffer_list_free (self->buffer_list, self->buffer1);
+		hev_pollable_fd_unref (self->client_pfd);
+		if (self->remote_pfd)
+		      hev_pollable_fd_unref (self->remote_pfd);
+		if (-1 < self->remote_fd)
+		      close (self->remote_fd);
+		close (self->client_fd);
+		hev_free (self);
+	}
+}
+
+static void
+hev_socks5_session_close (HevSocks5Session *self)
+{
 	if (self->notify.notifer)
 	      self->notify.notifer (self, self->notify.data);
-	hev_free (self);
 }
 
 static bool
@@ -268,7 +287,7 @@ read_auth_req_handler (HevPollableFD *fd, void *user_data)
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -305,7 +324,7 @@ write_auth_res_handler (HevPollableFD *fd, void *user_data)
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -380,7 +399,7 @@ error0:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
 error1:
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -394,7 +413,7 @@ resolver_handler (HevDNSResolver *resolver, void *user_data)
 	if (0 == ip)
 	      goto error;
 
-	hev_dns_resolver_destroy (resolver);
+	hev_dns_resolver_unref (resolver);
 	self->resolver = NULL;
 
 	self->addr.sin_addr.s_addr = ip;
@@ -403,7 +422,7 @@ resolver_handler (HevDNSResolver *resolver, void *user_data)
 
 	return;
 error:
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -417,7 +436,7 @@ socket_connect_handler (HevSocket *socket, void *user_data)
 	      goto error;
 
 	self->remote_fd = dup (hev_socket_get_fd (self->socket));
-	hev_socket_destroy (self->socket);
+	hev_socket_unref (self->socket);
 	self->socket = NULL;
 	self->remote_pfd = hev_pollable_fd_new (self->remote_fd, 1);
 	if (!self->remote_pfd)
@@ -438,7 +457,7 @@ socket_connect_handler (HevSocket *socket, void *user_data)
 
 	return;
 error:
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -484,7 +503,7 @@ error1:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
 error2:
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -497,7 +516,7 @@ write_reject_res_handler (HevPollableFD *fd, void *user_data)
 
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -522,7 +541,7 @@ read_client_data_handler (HevPollableFD *fd, void *user_data)
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -613,6 +632,6 @@ write_remote_data_handler (HevPollableFD *fd, void *user_data)
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
 	self->buffer0 = NULL;
-	hev_socks5_session_destroy (self);
+	hev_socks5_session_close (self);
 }
 
