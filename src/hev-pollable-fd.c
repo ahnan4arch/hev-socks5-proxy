@@ -83,6 +83,14 @@ hev_pollable_fd_unref (HevPollableFD *self)
 {
 	self->ref_count --;
 	if (0 == self->ref_count) {
+		if (self->read_ctx.callback) {
+			self->read_ctx.res_count = -1;
+			self->read_ctx.callback (self, self->read_ctx.user_data);
+		}
+		if (self->write_ctx.callback) {
+			self->write_ctx.res_count = -1;
+			self->write_ctx.callback (self, self->write_ctx.user_data);
+		}
 		hev_event_loop_del_source (main_loop, self->source);
 		hev_free (self);
 	}
