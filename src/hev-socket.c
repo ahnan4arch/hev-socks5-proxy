@@ -98,11 +98,11 @@ hev_socket_unref (HevSocket *self)
 	if (0 == self->ref_count) {
 		self->ref_count = 1;
 		if (self->accept_ctx.callback) {
-			self->accept_ctx.res = 0;
+			self->accept_ctx.res = -1;
 			self->accept_ctx.callback (self, self->accept_ctx.user_data);
 		}
 		if (self->connect_ctx.callback) {
-			self->connect_ctx.res = 0;
+			self->connect_ctx.res = -1;
 			self->connect_ctx.callback (self, self->connect_ctx.user_data);
 		}
 		hev_event_loop_del_source (main_loop, self->source);
