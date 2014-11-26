@@ -96,6 +96,7 @@ hev_socket_unref (HevSocket *self)
 {
 	self->ref_count --;
 	if (0 == self->ref_count) {
+		self->ref_count = 1;
 		if (self->accept_ctx.callback) {
 			self->accept_ctx.res = 0;
 			self->accept_ctx.callback (self, self->accept_ctx.user_data);
