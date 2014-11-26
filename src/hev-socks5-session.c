@@ -134,6 +134,7 @@ hev_socks5_session_unref (HevSocks5Session *self)
 {
 	self->ref_count --;
 	if (0 == self->ref_count) {
+		self->ref_count = 1;
 		self->notify.notifer = NULL;
 		if (self->socket)
 		      hev_socket_unref (self->socket);
