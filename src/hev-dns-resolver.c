@@ -44,7 +44,6 @@ struct _HevDNSResolver
 	unsigned int ref_count;
 	uint32_t ip;
 
-	void *buffer;
 	HevBufferList *buffer_list;
 	HevPollableFD *pfd;
 
