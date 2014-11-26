@@ -31,8 +31,6 @@ struct _HevSocks5Session
 	unsigned int ref_count;
 	bool is_idle;
 
-	HevBuffer *buffer0;
-	HevBuffer *buffer1;
 	HevSocket *socket;
 	HevDNSResolver *resolver;
 	HevPollableFD *client_pfd;
