@@ -108,6 +108,7 @@ hev_dns_resolver_unref (HevDNSResolver *self)
 {
 	self->ref_count --;
 	if (0 == self->ref_count) {
+		self->ref_count = 1;
 		hev_pollable_fd_unref (self->pfd);
 		close (self->fd);
 		hev_free (self);
