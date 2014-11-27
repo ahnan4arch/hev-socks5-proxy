@@ -72,7 +72,7 @@ hev_dns_resolver_new (const char *server, HevBufferList *buffer_list)
 	}
 
 	self->fd = socket (AF_INET, SOCK_DGRAM, 0);
-	if (!self->fd) {
+	if (0 > self->fd) {
 		fprintf (stderr, "Open DNS socket failed!\n");
 		hev_free (self);
 		return NULL;
