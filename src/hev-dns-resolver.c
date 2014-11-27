@@ -272,8 +272,6 @@ pollable_fd_read_handler (HevPollableFD *fd, void *user_data)
 
 	size = hev_pollable_fd_read_finish (self->pfd, &buffer);
 
-	hev_buffer_list_free (self->buffer_list, buffer);
-
 	hev_dns_resolver_ref (self);
 
 	if (0 >= size) {
@@ -282,6 +280,7 @@ pollable_fd_read_handler (HevPollableFD *fd, void *user_data)
 		self->ip = hev_dns_resolver_response_unpack (buffer, size);
 		self->callback (self, self->user_data);
 	}
+	hev_buffer_list_free (self->buffer_list, buffer);
 
 	hev_dns_resolver_unref (self);
 }
