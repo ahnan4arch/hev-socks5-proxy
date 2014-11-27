@@ -333,7 +333,7 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 	self->is_idle = false;
 	size = hev_pollable_fd_read_finish (fd, (void **) &buffer);
 	if (0 >= size) {
-		goto error0;
+		goto error;
 	} else {
 		int left_size;
 		uint8_t cmd, atype;
@@ -346,18 +346,17 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 			buffer->offset += size;
 			buffer->length = 0 - left_size;
 			if (!hev_socks5_session_client_read (self, buffer, read_req_handler))
-			      goto error0;
+			      goto error;
 		} else {
 			switch (atype) {
 			case HEV_SOCKS5_PROTO_ATYPE_IPV4:
-				hev_buffer_list_free (self->buffer_list, buffer);
 				self->addr.sin_port = port;
 				self->addr.sin_addr.s_addr = *(uint32_t *) addr;
 				if (!hev_socks5_session_socket_connect (self))
-				      goto error1;
+				      goto error;
+				hev_buffer_list_free (self->buffer_list, buffer);
 				break;
 			case HEV_SOCKS5_PROTO_ATYPE_DOMAIN:
-				hev_buffer_list_free (self->buffer_list, buffer);
 				self->addr.sin_port = port;
 				self->addr.sin_addr.s_addr = inet_addr (addr);
 				/* Checking is IPv4 address */
@@ -365,15 +364,16 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 					self->resolver = hev_dns_resolver_new (DNS_SERVER,
 								self->buffer_list);
 					if (!self->resolver)
-					      goto error1;
+					      goto error;
 					if (!hev_dns_resolver_query_async (self->resolver,
 									addr, resolver_handler,
 									self))
-					      goto error1;
+					      goto error;
 				} else {
 					if (!hev_socks5_session_socket_connect (self))
-					      goto error1;
+					      goto error;
 				}
+				hev_buffer_list_free (self->buffer_list, buffer);
 				break;
 			default:
 				buffer->offset = 0;
@@ -382,16 +382,15 @@ read_req_handler (HevPollableFD *fd, void *user_data)
 							atype, addr, port);
 				if (!hev_socks5_session_client_write (self, buffer,
 								write_reject_res_handler))
-				      goto error0;
+				      goto error;
 				break;
 			}
 		}
 	}
 
 	return;
-error0:
+error:
 	hev_buffer_list_free (self->buffer_list, buffer);
-error1:
 	hev_socks5_session_close (self);
 }
 
