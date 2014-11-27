@@ -97,3 +97,14 @@ hev_buffer_list_free (HevBufferList *self, void *buffer)
 	self->free_count ++;
 }
 
+void
+hev_buffer_list_free_real (HevBufferList *self)
+{
+	HevSList *slist;
+
+	for (slist=self->free_list; slist; slist=hev_slist_next(slist))
+	      hev_free (hev_slist_data (slist));
+	hev_slist_free (self->free_list);
+	self->free_list = NULL;
+}
+

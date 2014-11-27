@@ -20,6 +20,7 @@ void hev_buffer_list_destroy (HevBufferList *self);
 void * hev_buffer_list_alloc (HevBufferList *self);
 void * hev_buffer_list_alloc0 (HevBufferList *self);
 void hev_buffer_list_free (HevBufferList *self, void *buffer);
+void hev_buffer_list_free_real (HevBufferList *self);
 
 #endif /* __HEV_BUFFER_LIST_H__ */
 
