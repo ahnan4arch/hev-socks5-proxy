@@ -135,6 +135,8 @@ timeout_source_handler (void *data)
 	}
 	self->session_list = hev_slist_remove_all (self->session_list, NULL);
 
+	hev_buffer_list_free_real (self->buffer_list);
+
 	return true;
 }
 
