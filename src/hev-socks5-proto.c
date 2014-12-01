@@ -131,7 +131,10 @@ hev_socks5_proto_req_pack (void *buffer, uint8_t cmd, uint8_t atype,
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
-		return -1;
+		*ipv4 = 0;
+		pport = paddr + 4;
+		addr_len = 4;
+		break;
 	}
 
 	*pport = port;
@@ -205,7 +208,10 @@ hev_socks5_proto_res_pack (void *buffer, uint8_t rep, uint8_t atype,
 	case HEV_SOCKS5_PROTO_ATYPE_IPV6:
 		/* FIXME */
 	default:
-		return -1;
+		*ipv4 = 0;
+		pport = paddr + 4;
+		addr_len = 4;
+		break;
 	}
 
 	*pport = port;
