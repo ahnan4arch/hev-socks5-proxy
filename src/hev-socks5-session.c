@@ -50,6 +50,10 @@ static bool hev_socks5_session_client_read (HevSocks5Session *self, HevBuffer *b
 			HevPollableFDReadyCallback callback);
 static bool hev_socks5_session_remote_read (HevSocks5Session *self, HevBuffer *buffer,
 			HevPollableFDReadyCallback callback);
+static bool hev_socks5_session_client_write (HevSocks5Session *self, HevBuffer *buffer,
+			HevPollableFDReadyCallback callback);
+static bool hev_socks5_session_remote_write (HevSocks5Session *self, HevBuffer *buffer,
+			HevPollableFDReadyCallback callback);
 static bool hev_socks5_session_socket_connect (HevSocks5Session *self);
 
 static ssize_t sock_reader (int fd, void *buf, size_t count, void *user_data);
@@ -148,6 +152,18 @@ hev_socks5_session_unref (HevSocks5Session *self)
 	}
 }
 
+void
+hev_socks5_session_set_idle (HevSocks5Session *self)
+{
+	self->is_idle = true;
+}
+
+bool
+hev_socks5_session_get_idle (HevSocks5Session *self)
+{
+	return self->is_idle;
+}
+
 static void
 hev_socks5_session_close (HevSocks5Session *self)
 {
@@ -227,18 +243,6 @@ sock_writer (int fd, void *buf, size_t count, void *user_data)
 	HevBuffer *buffer = buf;
 
 	return send (fd, buffer->data + buffer->offset, count, 0);
-}
-
-void
-hev_socks5_session_set_idle (HevSocks5Session *self)
-{
-	self->is_idle = true;
-}
-
-bool
-hev_socks5_session_get_idle (HevSocks5Session *self)
-{
-	return self->is_idle;
 }
 
 static void
