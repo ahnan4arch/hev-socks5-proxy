@@ -85,6 +85,7 @@ hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 	}
 
 	self->client_fd = fd;
+	self->remote_fd = -1;
 	self->ref_count = 1;
 	self->is_idle = false;
 	self->buffer_list = buffer_list;
