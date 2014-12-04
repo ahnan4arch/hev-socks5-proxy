@@ -70,6 +70,9 @@ static void read_remote_data_handler (HevPollableFD *fd, void *user_data);
 static void write_client_data_handler (HevPollableFD *fd, void *user_data);
 static void write_remote_data_handler (HevPollableFD *fd, void *user_data);
 
+static HevPollableFDReader reader = { .func = sock_reader };
+static HevPollableFDWriter writer = { .func = sock_writer };
+
 HevSocks5Session *
 hev_socks5_session_new (int fd, HevBufferList *buffer_list,
 			HevSocks5SessionCloseNotify notify, void *notify_data)
@@ -175,9 +178,6 @@ static bool
 hev_socks5_session_client_read (HevSocks5Session *self, HevBuffer *buffer,
 			HevPollableFDReadyCallback callback)
 {
-	HevPollableFDReader reader;
-
-	reader.func = sock_reader;
 	return hev_pollable_fd_read_async (self->client_pfd, &reader,
 				buffer, buffer->length, callback, self);
 }
@@ -186,9 +186,6 @@ static bool
 hev_socks5_session_remote_read (HevSocks5Session *self, HevBuffer *buffer,
 			HevPollableFDReadyCallback callback)
 {
-	HevPollableFDReader reader;
-
-	reader.func = sock_reader;
 	return hev_pollable_fd_read_async (self->remote_pfd, &reader,
 				buffer, buffer->length, callback, self);
 }
@@ -197,9 +194,6 @@ static bool
 hev_socks5_session_client_write (HevSocks5Session *self, HevBuffer *buffer,
 			HevPollableFDReadyCallback callback)
 {
-	HevPollableFDWriter writer;
-
-	writer.func = sock_writer;
 	return hev_pollable_fd_write_async (self->client_pfd, &writer,
 				buffer, buffer->length, callback, self);
 }
@@ -208,9 +202,6 @@ static bool
 hev_socks5_session_remote_write (HevSocks5Session *self, HevBuffer *buffer,
 			HevPollableFDReadyCallback callback)
 {
-	HevPollableFDWriter writer;
-
-	writer.func = sock_writer;
 	return hev_pollable_fd_write_async (self->remote_pfd, &writer,
 				buffer, buffer->length, callback, self);
 }
