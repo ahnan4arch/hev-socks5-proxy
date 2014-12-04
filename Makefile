@@ -2,6 +2,7 @@
 
 PP=cpp
 CC=cc
+STRIP=strip
 CCFLAGS=-O3 -Werror -Wall -I ../hev-lib/include
 LDFLAGS=-L ../hev-lib/bin -l hev-lib
 
@@ -27,6 +28,7 @@ $(CCOBJSFILE) :
 
 $(TARGET) : $(LDOBJS)
 	@echo -n "Linking $^ to $@ ... " && $(CC) -o $@ $^ $(LDFLAGS) && echo "OK"
+	@echo -en "Striping $@ ... " && $(STRIP) $@ && echo -e "OK"
 
 $(BUILDDIR)/%.dep : $(SRCDIR)/%.c
 	@$(PP) $(CCFLAGS) -MM -MT $(@:.dep=.o) -o $@ $<
