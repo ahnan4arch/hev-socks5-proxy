@@ -549,6 +549,7 @@ read_remote_data_handler (HevPollableFD *fd, void *user_data)
 	return;
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
+	hev_socks5_session_close (self);
 }
 
 static void
@@ -581,6 +582,7 @@ write_client_data_handler (HevPollableFD *fd, void *user_data)
 	return;
 error:
 	hev_buffer_list_free (self->buffer_list, buffer);
+	hev_socks5_session_close (self);
 }
 
 static void
